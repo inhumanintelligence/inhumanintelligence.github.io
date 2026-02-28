@@ -3,256 +3,703 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Profile</title>
-
+<title>Kay</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-body{
-  height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#000;
-  color:#fff;
-  font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
-  overflow:hidden;
-  opacity:0;
-  animation:fadeIn 1.2s ease forwards;
-}
+  body {
+    min-height: 100vh;
+    font-family: 'Nunito', sans-serif;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow-x: hidden; padding: 48px 24px;
+    background: #0a0a0a;
+  }
 
-@keyframes fadeIn{
-  to{ opacity:1; }
-}
+  @media (max-width: 380px) {
+    body { padding: 24px 12px; }
+  }
 
-.card{
-  text-align:center;
-  position:relative;
-  padding:50px 70px;
-}
+  .bg {
+    position: fixed; inset: 0;
+    background: url('438ff2ad92e75220bba802cc4e824def.jpg') center center / cover no-repeat;
+    filter: blur(22px) brightness(0.5) grayscale(0.5) contrast(1.05);
+    transform: scale(1.1); z-index: 0;
+  }
 
-/* Avatar */
-.avatar-wrap{
-  position:relative;
-  width:130px;
-  height:130px;
-  margin:0 auto 22px;
-}
+  .vignette {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center,
+      rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.7) 100%);
+    z-index: 1;
+  }
 
-.avatar-wrap img{
-  width:100%;
-  height:100%;
-  border-radius:50%;
-  display:block;
-  position:relative;
-  z-index:2;
-}
+  .scanlines {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(to bottom,
+      transparent 0px, transparent 3px,
+      rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+    z-index: 2; pointer-events: none;
+  }
 
-/* Matte Pulse Ring */
-.pulse-ring{
-  position:absolute;
-  inset:-6px;
-  border-radius:50%;
-  border:2px solid rgba(255,255,255,0.85);
-  animation:pulse 3s ease-in-out infinite;
-  transform-origin:center;
-  will-change:transform,opacity;
-}
+  /* ── ENTER SCREEN ── */
+  #enter-screen {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px;
+    cursor: pointer;
+    transition: opacity 0.9s ease;
+  }
 
-@keyframes pulse{
-  0%,100%{ transform:scale(1); opacity:.75; }
-  50%{ transform:scale(1.03); opacity:1; }
-}
+  #enter-screen.hiding {
+    opacity: 0;
+    pointer-events: none;
+  }
 
-/* Status Dot */
-.status-dot{
-  position:absolute;
-  bottom:8px;
-  right:8px;
-  width:16px;
-  height:16px;
-  border-radius:50%;
-  border:2px solid #000;
-  z-index:3;
-}
+  .enter-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.75);
+    text-transform: lowercase;
+    animation: labelBreath 2.4s ease-in-out infinite;
+  }
 
-/* Text */
-h1{
-  font-size:24px;
-  font-weight:600;
-  margin-bottom:6px;
-}
+  @keyframes labelBreath {
+    0%,100% { opacity: 0.3; }
+    50%      { opacity: 0.8; }
+  }
 
-.handle{
-  font-size:14px;
-  opacity:.6;
-}
+  /* ── MAIN WRAP ── */
+  #main-wrap {
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 16px;
+    width: 100%; max-width: 400px;
+    filter: blur(18px) brightness(0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: filter 1.3s cubic-bezier(0.23,1,0.32,1),
+                opacity 0.9s ease;
+  }
 
-.status-label{
-  margin-top:10px;
-  font-size:13px;
-  opacity:.5;
-  min-height:18px;
-  transition:opacity .3s ease;
-}
+  #main-wrap.revealed {
+    filter: blur(0px) brightness(1);
+    opacity: 1;
+    pointer-events: all;
+  }
 
-/* Spotify */
-.spotify{
-  margin-top:18px;
-  font-size:13px;
-  opacity:.7;
-  display:none;
-}
+  /* ── STAGGERED CHILDREN ── */
+  #main-wrap .avatar-wrap,
+  #main-wrap .name-section,
+  #main-wrap .discord-status,
+  #main-wrap .custom-status,
+  #main-wrap .now-playing {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.23,1,0.32,1);
+  }
 
-.progress{
-  height:3px;
-  background:rgba(255,255,255,.2);
-  margin-top:6px;
-  width:180px;
-  margin-left:auto;
-  margin-right:auto;
-  position:relative;
-  overflow:hidden;
-}
+  #main-wrap.revealed .avatar-wrap   { opacity:1; transform:translateY(0); transition-delay:0.15s; }
+  #main-wrap.revealed .name-section  { opacity:1; transform:translateY(0); transition-delay:0.28s; }
+  #main-wrap.revealed .discord-status{ opacity:1; transform:translateY(0); transition-delay:0.40s; }
+  #main-wrap.revealed .custom-status { opacity:1; transform:translateY(0); transition-delay:0.50s; }
+  #main-wrap.revealed .now-playing   { opacity:1; transform:translateY(0); transition-delay:0.60s; }
 
-.progress-bar{
-  height:100%;
-  width:0%;
-  background:#fff;
-  transition:width .2s linear;
-}
+  /* ── CARD ── */
+  @property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  .card-wrap {
+    position: relative; width: 100%;
+    border-radius: 34px; padding: 2px;
+    animation: popIn 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  .card-wrap::before {
+    content: '';
+    position: absolute; inset: 0; border-radius: 34px;
+    background: conic-gradient(
+      from var(--angle),
+      #000 0%, #111 10%, #2a2a2a 18%,
+      #555 25%, #909090 32%, #d0d0d0 38%,
+      #fff 43%, #d0d0d0 48%, #909090 55%,
+      #555 62%, #2a2a2a 70%, #111 78%,
+      #000 85%, #000 100%
+    );
+    animation: borderSpin 2.8s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes borderSpin { to { --angle: 360deg; } }
+
+  .card {
+    position: relative; z-index: 1; width: 100%;
+    background: rgba(14,14,14,0.95);
+    backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
+    border-radius: 32px; padding: 40px 36px 36px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 24px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.07) inset,
+      0 24px 64px rgba(0,0,0,0.8);
+    transition: box-shadow 0.4s ease;
+    will-change: transform;
+  }
+
+  .card:hover {
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.07) inset,
+      0 32px 72px rgba(0,0,0,0.9);
+  }
+
+  @media (max-width: 380px) {
+    .card { padding: 28px 20px 24px; }
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.92) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* ── AVATAR ── */
+  .avatar-wrap {
+    position: relative; width: 100px; height: 100px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: visible;
+  }
+
+  /* ── MATTE PULSE RING ── */
+  .avatar-pulse-ring {
+    position: absolute; inset: -6px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.85);
+    animation: mattePulse 3s ease-in-out infinite;
+    pointer-events: none; z-index: 2;
+  }
+
+  @keyframes mattePulse {
+    0%,100% { transform: scale(1);    opacity: 0.75; }
+    50%      { transform: scale(1.03); opacity: 1;    }
+  }
+
+  .avatar {
+    width: 82px; height: 82px; border-radius: 50%;
+    overflow: hidden; background: #111;
+    position: relative; z-index: 1;
+  }
+
+  .avatar img {
+    width: 100%; height: 100%; object-fit: cover;
+    object-position: 72% 78%; display: block;
+    filter: grayscale(30%) brightness(0.85) contrast(1.1);
+  }
+
+  .avatar-badge {
+    position: absolute; bottom: 6px; right: 6px;
+    width: 18px; height: 18px;
+    border: 3px solid #0e0e0e;
+    border-radius: 50%;
+    background: #747f8d;
+    transition: background 0.4s, box-shadow 0.4s;
+    z-index: 2;
+  }
+
+  .avatar-badge.online { background: #23a55a; box-shadow: 0 0 8px rgba(35,165,90,0.6); }
+  .avatar-badge.idle {
+    background: #f0b232; box-shadow: 0 0 8px rgba(240,178,50,0.5);
+    -webkit-mask: radial-gradient(circle at 100% 0%, transparent 55%, black 56%);
+    mask: radial-gradient(circle at 100% 0%, transparent 55%, black 56%);
+  }
+  .avatar-badge.dnd { background: #f23f43; box-shadow: 0 0 8px rgba(242,63,67,0.5); }
+  .avatar-badge.dnd::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 58%; height: 2.5px; background: #0e0e0e; border-radius: 2px;
+  }
+  .avatar-badge.offline { background: #747f8d; box-shadow: none; }
+
+  /* ── NAME ── */
+  .name-section {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+
+  h1 {
+    font-size: 32px; font-weight: 900;
+    letter-spacing: -0.8px; color: #f0f0f0;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+  }
+
+  .handle {
+    font-size: 12px; font-weight: 700;
+    color: #888; letter-spacing: 1.5px; text-transform: uppercase;
+  }
+
+  /* ── STATUS PILL ── */
+  .discord-status {
+    display: flex; align-items: center; gap: 8px;
+    background: #0d0d0d; border: 1px solid #1f1f1f;
+    border-radius: 100px; padding: 6px 16px;
+  }
+
+  .status-indicator {
+    width: 10px; height: 10px;
+    flex-shrink: 0; position: relative;
+  }
+
+  .status-indicator.online {
+    border-radius: 50%; background: #23a55a;
+    box-shadow: 0 0 6px rgba(35,165,90,0.6);
+  }
+  .status-indicator.idle {
+    border-radius: 50%; background: #f0b232;
+    box-shadow: 0 0 6px rgba(240,178,50,0.5);
+    -webkit-mask: radial-gradient(circle at 100% 0%, transparent 50%, black 51%);
+    mask: radial-gradient(circle at 100% 0%, transparent 50%, black 51%);
+  }
+  .status-indicator.dnd {
+    border-radius: 50%; background: #f23f43;
+    box-shadow: 0 0 6px rgba(242,63,67,0.5);
+  }
+  .status-indicator.dnd::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%; height: 2px; background: #0d0d0d; border-radius: 1px;
+  }
+  .status-indicator.offline {
+    border-radius: 50%; background: transparent;
+    border: 2px solid #747f8d;
+    width: 10px; height: 10px;
+  }
+
+  .status-label {
+    font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.5px;
+  }
+
+  /* ── CUSTOM STATUS ── */
+  .custom-status {
+    font-size: 11px; font-weight: 700; color: #666;
+    letter-spacing: 0.3px; max-width: 260px;
+    text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: none;
+  }
+
+  /* ── NOW PLAYING ── */
+  .now-playing {
+    width: 100%; background: #0d0d0d;
+    border: 1px solid #1f1f1f; border-radius: 18px;
+    padding: 14px 18px 16px;
+    display: none; flex-direction: column; gap: 10px;
+    cursor: default;
+  }
+  .now-playing.visible { display: flex; }
+
+  .now-playing-top {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .spotify-art {
+    width: 38px; height: 38px; border-radius: 8px;
+    object-fit: cover; flex-shrink: 0;
+    display: none; background: #1a1a1a;
+  }
+  .spotify-art.loaded { display: block; }
+
+  .bars {
+    display: flex; align-items: flex-end;
+    gap: 2px; height: 16px; flex-shrink: 0;
+  }
+  .bar {
+    width: 3px; border-radius: 2px; background: #1DB954;
+    animation: bounce var(--d) ease-in-out infinite alternate;
+  }
+  .bar:nth-child(1) { --d:.6s; height:6px; }
+  .bar:nth-child(2) { --d:.4s; height:14px; }
+  .bar:nth-child(3) { --d:.7s; height:10px; }
+  .bar:nth-child(4) { --d:.5s; height:16px; }
+
+  @keyframes bounce {
+    from { transform: scaleY(0.3); }
+    to   { transform: scaleY(1); }
+  }
+
+  .track-info {
+    display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;
+  }
+  .track-label {
+    font-size: 9px; font-weight: 800; color: #1DB954;
+    letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 2px;
+  }
+  .track-name {
+    font-size: 12px; font-weight: 800; color: #ccc;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .track-artist { font-size: 11px; font-weight: 600; color: #666; }
+  .track-album  { font-size: 10px; font-weight: 600; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    width: 100%; display: flex; flex-direction: column; gap: 4px;
+  }
+
+  .progress-track {
+    width: 100%; height: 3px;
+    background: #1f1f1f; border-radius: 2px; overflow: hidden;
+    cursor: default;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #1DB954;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 1s linear;
+  }
+
+  .progress-times {
+    display: flex; justify-content: space-between;
+    font-size: 9px; font-weight: 700; color: #444; letter-spacing: 0.3px;
+  }
+
+  /* ── ARIA LIVE ── */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
 </style>
 </head>
 <body>
 
-<div class="card">
+<div class="bg" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
 
-  <div class="avatar-wrap">
-    <div class="pulse-ring" id="pulse"></div>
-    <img id="avatar">
-    <div class="status-dot" id="statusDot"></div>
-  </div>
+<!-- ARIA LIVE for status changes -->
+<div aria-live="polite" aria-atomic="true" class="sr-only" id="ariaStatus"></div>
 
-  <h1 id="displayName">Loading...</h1>
-  <div class="handle" id="handle">@loading</div>
-  <div class="status-label" id="statusText"></div>
+<!-- ENTER SCREEN -->
+<div id="enter-screen" role="button" tabindex="0" aria-label="Click to enter">
+  <span class="enter-label">click to enter</span>
+</div>
 
-  <div class="spotify" id="spotifyBox">
-    <div id="songName"></div>
-    <div id="artistName" style="opacity:.6"></div>
-    <div class="progress">
-      <div class="progress-bar" id="progressBar"></div>
+<!-- MAIN -->
+<div id="main-wrap" role="region" aria-label="Kay's profile">
+
+  <div class="card-wrap">
+    <div class="card" id="card">
+
+      <div class="avatar-wrap" aria-hidden="true">
+        <div class="avatar-pulse-ring"></div>
+        <div class="avatar">
+          <img src="438ff2ad92e75220bba802cc4e824def.jpg" alt="Kay's avatar">
+        </div>
+        <div class="avatar-badge" id="avatarBadge"></div>
+      </div>
+
+      <div class="name-section">
+        <h1>Kay</h1>
+        <span class="handle" aria-label="Discord handle">@tmsu</span>
+      </div>
+
+      <div class="discord-status" aria-label="Discord status">
+        <div class="status-indicator" id="statusIndicator" aria-hidden="true"></div>
+        <span class="status-label" id="statusLabel">...</span>
+      </div>
+
+      <span class="custom-status" id="customStatus" role="note"></span>
+
+      <div class="now-playing" id="nowPlaying" role="status" aria-label="Now playing on Spotify">
+        <div class="now-playing-top">
+          <img class="spotify-art" id="spotifyArt" src="" alt="Album art">
+          <div class="bars" aria-hidden="true">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+          </div>
+          <div class="track-info">
+            <span class="track-label">Listening on Spotify</span>
+            <span class="track-name" id="trackName">—</span>
+            <span class="track-artist" id="trackArtist">—</span>
+            <span class="track-album"  id="trackAlbum">—</span>
+          </div>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap" style="display:none">
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-times" aria-hidden="true">
+            <span id="timeElapsed">0:00</span>
+            <span id="timeDuration">0:00</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
-
 </div>
 
 <script>
-const USER_ID = "1439946318083784866";
+  const DISCORD_ID   = '1439946318083784866';
+  const LANYARD_HTTP = `https://api.lanyard.rest/v1/users/${DISCORD_ID}`;
+  const LANYARD_WS   = 'wss://api.lanyard.rest/socket';
 
-/* Elements */
-const avatarEl = document.getElementById("avatar");
-const displayEl = document.getElementById("displayName");
-const handleEl = document.getElementById("handle");
-const statusDot = document.getElementById("statusDot");
-const statusText = document.getElementById("statusText");
-const pulseRing = document.getElementById("pulse");
-const spotifyBox = document.getElementById("spotifyBox");
-const songName = document.getElementById("songName");
-const artistName = document.getElementById("artistName");
-const progressBar = document.getElementById("progressBar");
+  const enterScreen     = document.getElementById('enter-screen');
+  const mainWrap        = document.getElementById('main-wrap');
+  const card            = document.getElementById('card');
+  const avatarBadge     = document.getElementById('avatarBadge');
+  const statusIndicator = document.getElementById('statusIndicator');
+  const statusLabel     = document.getElementById('statusLabel');
+  const customStatus    = document.getElementById('customStatus');
+  const nowPlaying      = document.getElementById('nowPlaying');
+  const spotifyArt      = document.getElementById('spotifyArt');
+  const trackName       = document.getElementById('trackName');
+  const trackArtist     = document.getElementById('trackArtist');
+  const trackAlbum      = document.getElementById('trackAlbum');
+  const progressWrap    = document.getElementById('progressWrap');
+  const progressFill    = document.getElementById('progressFill');
+  const timeElapsed     = document.getElementById('timeElapsed');
+  const timeDuration    = document.getElementById('timeDuration');
+  const ariaStatus      = document.getElementById('ariaStatus');
 
-/* Status Colors */
-const STATUS_COLORS = {
-  online:"#23A559",
-  idle:"#F0B232",
-  dnd:"#F23F43",
-  offline:"#80848E"
-};
+  const STATUS_LABELS = {
+    online: 'Online', idle: 'Idle',
+    dnd: 'Do Not Disturb', offline: 'Offline'
+  };
 
-/* Lanyard WebSocket */
-const socket = new WebSocket("wss://api.lanyard.rest/socket");
+  // ── ENTER ──
+  let entered = false;
 
-socket.addEventListener("open",()=>{
-  socket.send(JSON.stringify({
-    op:2,
-    d:{
-      subscribe_to_id:USER_ID
+  function doEnter() {
+    if (entered) return;
+    entered = true;
+    enterScreen.classList.add('hiding');
+    mainWrap.classList.add('revealed');
+    setTimeout(() => enterScreen.remove(), 1000);
+  }
+
+  enterScreen.addEventListener('click', doEnter);
+  enterScreen.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') doEnter();
+  });
+
+  // ── PROGRESS BAR ──
+  let progressRAF = null;
+  let trackStart  = null;
+  let trackEnd    = null;
+
+  function fmtMs(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  function tickProgress() {
+    if (!trackStart || !trackEnd) return;
+    const now      = Date.now();
+    const elapsed  = Math.min(now - trackStart, trackEnd - trackStart);
+    const duration = trackEnd - trackStart;
+    const pct      = Math.min((elapsed / duration) * 100, 100);
+
+    progressFill.style.width   = pct + '%';
+    timeElapsed.textContent    = fmtMs(elapsed);
+    timeDuration.textContent   = fmtMs(duration);
+
+    if (pct < 100) progressRAF = requestAnimationFrame(tickProgress);
+  }
+
+  function startProgress(start, end) {
+    cancelAnimationFrame(progressRAF);
+    trackStart = start; trackEnd = end;
+    progressWrap.style.display = 'flex';
+    tickProgress();
+  }
+
+  function stopProgress() {
+    cancelAnimationFrame(progressRAF);
+    progressWrap.style.display = 'none';
+    trackStart = null; trackEnd = null;
+  }
+
+  // ── PRESENCE ──
+  let lastStatus = null;
+
+  function applyPresence(data) {
+    const status = data.discord_status || 'offline';
+
+    // ARIA announce only on change
+    if (status !== lastStatus) {
+      ariaStatus.textContent = `Status changed to ${STATUS_LABELS[status] || status}`;
+      lastStatus = status;
     }
-  }));
-});
 
-socket.addEventListener("message",(event)=>{
-  const data = JSON.parse(event.data);
+    avatarBadge.className     = 'avatar-badge '     + status;
+    statusIndicator.className = 'status-indicator ' + status;
+    statusLabel.textContent   = STATUS_LABELS[status] || status;
 
-  if(data.t==="INIT_STATE" || data.t==="PRESENCE_UPDATE"){
-    applyData(data.d);
+    // Auto-update display name + handle from Discord
+    const user = data.discord_user;
+    if (user) {
+      const displayName = user.global_name || user.username || 'Kay';
+      const handle      = user.username    || 'tmsu';
+      document.querySelector('h1').textContent           = displayName;
+      document.querySelector('.handle').textContent      = '@' + handle;
+      document.querySelector('.handle').setAttribute('aria-label', 'Discord handle @' + handle);
+      document.title = displayName;
+
+      // Avatar
+    }
+
+    // Custom status
+    const cs = (data.activities || []).find(a => a.type === 4);
+    if (cs && (cs.state || cs.emoji?.name)) {
+      customStatus.textContent   = (cs.emoji?.name ? cs.emoji.name + ' ' : '') + (cs.state || '');
+      customStatus.style.display = 'block';
+    } else {
+      customStatus.style.display = 'none';
+    }
+
+    // Spotify
+    const spotify = data.spotify;
+    if (status !== 'offline' && spotify) {
+      trackName.textContent   = spotify.song    || '—';
+      trackArtist.textContent = spotify.artist  || '—';
+      trackAlbum.textContent  = spotify.album   || '—';
+
+      if (spotify.album_art_url) {
+        spotifyArt.src    = spotify.album_art_url;
+        spotifyArt.onload  = () => spotifyArt.classList.add('loaded');
+        spotifyArt.onerror = () => spotifyArt.classList.remove('loaded');
+      }
+      nowPlaying.classList.add('visible');
+
+      // Progress bar from timestamps
+      if (spotify.timestamps?.start && spotify.timestamps?.end) {
+        startProgress(spotify.timestamps.start, spotify.timestamps.end);
+      } else {
+        stopProgress();
+      }
+    } else {
+      nowPlaying.classList.remove('visible');
+      spotifyArt.classList.remove('loaded');
+      stopProgress();
+    }
   }
-});
 
-function applyData(data){
-  const user = data.discord_user;
-  if(!user) return;
+  // ── WEBSOCKET ──
+  let subscribed = false;
 
-  /* Display Name */
-  const displayName = user.global_name || user.username;
+  function connectWS() {
+    const ws = new WebSocket(LANYARD_WS);
+    let hb;
 
-  let handle;
-  if(user.discriminator && user.discriminator !== "0"){
-    handle = `${user.username}#${user.discriminator}`;
-  }else{
-    handle = user.username;
+    ws.onmessage = ({ data }) => {
+      const msg = JSON.parse(data);
+
+      if (msg.op === 1) {
+        // Only subscribe once per connection
+        if (!subscribed) {
+          ws.send(JSON.stringify({ op: 2, d: { subscribe_to_id: DISCORD_ID } }));
+          subscribed = true;
+        }
+        hb = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN)
+            ws.send(JSON.stringify({ op: 3 }));
+        }, msg.d.heartbeat_interval);
+      }
+
+      if (msg.op === 0) applyPresence(msg.d);
+    };
+
+    ws.onclose = () => {
+      clearInterval(hb);
+      subscribed = false;
+      setTimeout(connectWS, 3000);
+    };
+    ws.onerror = () => ws.close();
   }
 
-  displayEl.textContent = displayName;
-  handleEl.textContent = "@" + handle;
+  fetch(LANYARD_HTTP)
+    .then(r => r.json())
+    .then(j => { if (j.data) applyPresence(j.data); })
+    .catch(() => {});
 
-  avatarEl.src =
-    `https://cdn.discordapp.com/avatars/${USER_ID}/${user.avatar}.png?size=256`;
+  connectWS();
 
-  /* Status */
-  const status = data.discord_status || "offline";
-  statusDot.style.background = STATUS_COLORS[status] || "#80848E";
-  statusText.textContent = status;
+  // ── EDGE TILT ──
+  const EDGE  = 0.28;
+  const MAX_T = 6;
 
-  /* Pulse only if not offline */
-  pulseRing.style.display = status === "offline" ? "none" : "block";
+  let targetX = 0, targetY = 0;
+  let currentX = 0, currentY = 0;
+  let hovering = false;
+  let rafId = null;
 
-  /* Custom Status */
-  const custom = (data.activities || []).find(a=>a.type===4);
-  if(custom && custom.state){
-    statusText.textContent = custom.state;
+  function calcTilt(px, py, rect) {
+    const cx = (px - rect.left) / rect.width;
+    const cy = (py - rect.top)  / rect.height;
+    let tx = 0, ty = 0;
+    if (cx < EDGE)        tx = -(1 - cx / EDGE);
+    else if (cx > 1-EDGE) tx =  (cx - (1 - EDGE)) / EDGE;
+    if (cy < EDGE)        ty =  (1 - cy / EDGE);
+    else if (cy > 1-EDGE) ty = -((cy - (1 - EDGE)) / EDGE);
+    return { rotX: ty * MAX_T, rotY: tx * MAX_T };
   }
 
-  /* Spotify */
-  if(data.spotify){
-    spotifyBox.style.display="block";
-    songName.textContent = data.spotify.song;
-    artistName.textContent = data.spotify.artist;
+  function lerp(a, b, t) { return a + (b - a) * t; }
 
-    const start = data.spotify.timestamps.start;
-    const end = data.spotify.timestamps.end;
-
-    updateProgress(start,end);
-  }else{
-    spotifyBox.style.display="none";
+  function tiltLoop() {
+    currentX = lerp(currentX, targetX, 0.1);
+    currentY = lerp(currentY, targetY, 0.1);
+    card.style.transform = `perspective(1400px) rotateX(${currentX.toFixed(3)}deg) rotateY(${currentY.toFixed(3)}deg)`;
+    const stillMoving = Math.abs(currentX - targetX) > 0.01 || Math.abs(currentY - targetY) > 0.01;
+    if (hovering || stillMoving) rafId = requestAnimationFrame(tiltLoop);
+    else { rafId = null; card.style.transform = ''; }
   }
-}
 
-function updateProgress(start,end){
-  function animate(){
-    const now = Date.now();
-    const percent = ((now-start)/(end-start))*100;
-    progressBar.style.width = Math.min(percent,100)+"%";
-    if(percent<100) requestAnimationFrame(animate);
+  function startLoop() {
+    if (!rafId) rafId = requestAnimationFrame(tiltLoop);
   }
-  animate();
-}
+
+  card.addEventListener('mouseenter', () => { hovering = true; startLoop(); });
+
+  card.addEventListener('mousemove', e => {
+    e.stopPropagation();
+    const { rotX, rotY } = calcTilt(e.clientX, e.clientY, card.getBoundingClientRect());
+    targetX = rotX; targetY = rotY;
+  });
+
+  card.addEventListener('mouseleave', () => {
+    hovering = false; targetX = 0; targetY = 0; startLoop();
+  });
+
+  // Touch with scale feedback
+  card.addEventListener('touchstart', () => {
+    card.style.transition = 'transform 0.12s ease';
+    card.style.transform  = 'scale(0.98)';
+  }, { passive: true });
+
+  card.addEventListener('touchmove', e => {
+    card.style.transition = '';
+    const t = e.touches[0];
+    const { rotX, rotY } = calcTilt(t.clientX, t.clientY, card.getBoundingClientRect());
+    targetX = rotX; targetY = rotY;
+    hovering = true; startLoop();
+  }, { passive: true });
+
+  card.addEventListener('touchend', () => {
+    hovering = false; targetX = 0; targetY = 0;
+    card.style.transition = 'transform 0.3s ease';
+    startLoop();
+    setTimeout(() => { card.style.transition = ''; }, 300);
+  });
 </script>
-
 </body>
 </html>
