@@ -432,9 +432,9 @@
   });
 
   function resolveCountry(raw) {
-    if (!raw || typeof raw !== 'string') return 'Not disclosed';
+    if (!raw || typeof raw !== 'string') return 'Unknown';
     const trimmed = raw.trim();
-    if (!trimmed) return 'Not disclosed';
+    if (!trimmed) return 'Unknown';
 
     // Try as 2-letter ISO code (case-insensitive)
     const code = trimmed.toUpperCase();
@@ -503,24 +503,40 @@
     document.getElementById('infoCreated').textContent   = fmtDate(d.createTime);
   }
 
-  /* fetch region via TikTok's own web API through a CORS proxy */
+  /* fetch region by scraping TikTok's own page — region is embedded in SIGI_STATE JSON */
   async function fetchRegion(username) {
+    const ttPageUrl = `https://www.tiktok.com/@${encodeURIComponent(username)}`;
     const proxies = [
-      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(ttPageUrl)}`,
+      `https://corsproxy.io/?url=${encodeURIComponent(ttPageUrl)}`,
+      `https://thingproxy.freeboard.io/fetch/${ttPageUrl}`,
     ];
-    const ttUrl = `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(username)}&aid=1988&app_name=tiktok_web&device_platform=web_pc`;
-    for (const proxy of proxies) {
+    for (const url of proxies) {
       try {
-        const r = await fetch(proxy(ttUrl), { headers: { 'Accept': 'application/json' } });
+        const r = await fetch(url);
         if (!r.ok) continue;
-        const j = await r.json();
-        const region =
-          j?.userInfo?.user?.region ||
-          j?.userInfo?.user?.country ||
-          j?.user?.region || '';
-        if (region) return region;
-      } catch { /* try next proxy */ }
+        const html = await r.text();
+
+        // TikTok embeds full user JSON in a <script id="SIGI_STATE"> tag
+        const sigiMatch = html.match(/<script id="SIGI_STATE"[^>]*>([\s\S]*?)<\/script>/);
+        if (sigiMatch) {
+          const sigi = JSON.parse(sigiMatch[1]);
+          // Walk the UserModule or UserPage objects
+          const users = sigi?.UserModule?.users || sigi?.UserPage?.userInfo?.user
+            ? { u: sigi.UserPage.userInfo.user } : {};
+          const userObj = Object.values(sigi?.UserModule?.users || {})[0]
+            || sigi?.UserPage?.userInfo?.user;
+          if (userObj?.region) return userObj.region;
+        }
+
+        // Fallback: __NEXT_DATA__ (older TikTok pages)
+        const nextMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+        if (nextMatch) {
+          const next = JSON.parse(nextMatch[1]);
+          const region = next?.props?.pageProps?.userInfo?.user?.region;
+          if (region) return region;
+        }
+      } catch { /* try next */ }
     }
     return '';
   }
