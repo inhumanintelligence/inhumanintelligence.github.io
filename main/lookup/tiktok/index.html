@@ -394,6 +394,64 @@
     return d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
   }
 
+  /* ── COUNTRY HELPERS ── */
+  const FLAG_MAP = {
+    'US':'🇺🇸','GB':'🇬🇧','DE':'🇩🇪','FR':'🇫🇷','CA':'🇨🇦','AU':'🇦🇺',
+    'JP':'🇯🇵','KR':'🇰🇷','BR':'🇧🇷','MX':'🇲🇽','IN':'🇮🇳','IT':'🇮🇹',
+    'ES':'🇪🇸','NL':'🇳🇱','SE':'🇸🇪','NO':'🇳🇴','DK':'🇩🇰','FI':'🇫🇮',
+    'PL':'🇵🇱','RU':'🇷🇺','TR':'🇹🇷','SA':'🇸🇦','AE':'🇦🇪','SG':'🇸🇬',
+    'ID':'🇮🇩','PH':'🇵🇭','TH':'🇹🇭','VN':'🇻🇳','MY':'🇲🇾','PK':'🇵🇰',
+    'NG':'🇳🇬','ZA':'🇿🇦','EG':'🇪🇬','AR':'🇦🇷','CO':'🇨🇴','CL':'🇨🇱',
+    'PT':'🇵🇹','BE':'🇧🇪','AT':'🇦🇹','CH':'🇨🇭','NZ':'🇳🇿','IE':'🇮🇪',
+    'HU':'🇭🇺','CZ':'🇨🇿','RO':'🇷🇴','GR':'🇬🇷','IL':'🇮🇱','TW':'🇹🇼',
+    'HK':'🇭🇰','CN':'🇨🇳','UA':'🇺🇦','SK':'🇸🇰','HR':'🇭🇷','RS':'🇷🇸',
+    'LT':'🇱🇹','LV':'🇱🇻','EE':'🇪🇪','BG':'🇧🇬','SI':'🇸🇮','BY':'🇧🇾',
+    'KZ':'🇰🇿','UZ':'🇺🇿','GE':'🇬🇪','AM':'🇦🇲','AZ':'🇦🇿',
+  };
+  const COUNTRY_NAMES = {
+    'US':'United States','GB':'United Kingdom','DE':'Germany','FR':'France',
+    'CA':'Canada','AU':'Australia','JP':'Japan','KR':'South Korea','BR':'Brazil',
+    'MX':'Mexico','IN':'India','IT':'Italy','ES':'Spain','NL':'Netherlands',
+    'SE':'Sweden','NO':'Norway','DK':'Denmark','FI':'Finland','PL':'Poland',
+    'RU':'Russia','TR':'Turkey','SA':'Saudi Arabia','AE':'UAE','SG':'Singapore',
+    'ID':'Indonesia','PH':'Philippines','TH':'Thailand','VN':'Vietnam',
+    'MY':'Malaysia','PK':'Pakistan','NG':'Nigeria','ZA':'South Africa',
+    'EG':'Egypt','AR':'Argentina','CO':'Colombia','CL':'Chile','PT':'Portugal',
+    'BE':'Belgium','AT':'Austria','CH':'Switzerland','NZ':'New Zealand',
+    'IE':'Ireland','HU':'Hungary','CZ':'Czech Republic','RO':'Romania',
+    'GR':'Greece','IL':'Israel','TW':'Taiwan','HK':'Hong Kong','CN':'China',
+    'UA':'Ukraine','SK':'Slovakia','HR':'Croatia','RS':'Serbia','LT':'Lithuania',
+    'LV':'Latvia','EE':'Estonia','BG':'Bulgaria','SI':'Slovenia','BY':'Belarus',
+    'KZ':'Kazakhstan','UZ':'Uzbekistan','GE':'Georgia','AM':'Armenia','AZ':'Azerbaijan',
+  };
+
+  // Reverse map: full name → code (for when API returns a full name)
+  const NAME_TO_CODE = {};
+  Object.entries(COUNTRY_NAMES).forEach(([code, name]) => {
+    NAME_TO_CODE[name.toLowerCase()] = code;
+  });
+
+  function resolveCountry(raw) {
+    if (!raw || typeof raw !== 'string') return 'Not disclosed';
+    const trimmed = raw.trim();
+    if (!trimmed) return 'Not disclosed';
+
+    // Try as 2-letter ISO code (case-insensitive)
+    const code = trimmed.toUpperCase();
+    if (FLAG_MAP[code]) {
+      return FLAG_MAP[code] + ' ' + (COUNTRY_NAMES[code] || code);
+    }
+
+    // Try reverse lookup (full country name → code)
+    const lookedUp = NAME_TO_CODE[trimmed.toLowerCase()];
+    if (lookedUp && FLAG_MAP[lookedUp]) {
+      return FLAG_MAP[lookedUp] + ' ' + COUNTRY_NAMES[lookedUp];
+    }
+
+    // Unknown but non-empty value — show as-is
+    return trimmed;
+  }
+
   function showProfile(d){
     document.getElementById('loadingEl').classList.remove('visible');
     document.getElementById('statusMsg').classList.remove('visible');
@@ -426,12 +484,18 @@
     document.getElementById('infoUserId').textContent = d.id || '—';
 
     const accountTypeEl = document.getElementById('infoAccountType');
-    const isPrivate = d.privateAccount === true || d.privateAccount === 'true';
+    const isPrivate = d.privateAccount === true || d.privateAccount === 'true' || d.privateAccount === 1;
     accountTypeEl.innerHTML = isPrivate
       ? '<span class="badge private">Private</span>'
       : '<span class="badge public">Public</span>';
 
-    document.getElementById('infoCountry').textContent   = d.region || d.country || '—';
+    // Gather every possible region/country field and pick the first non-empty one
+    const regionRaw = [d.region, d.country, d.location, d.locale]
+      .map(v => (v && typeof v === 'string') ? v.trim() : '')
+      .find(v => v.length > 0) || '';
+
+    document.getElementById('infoCountry').textContent = resolveCountry(regionRaw);
+
     document.getElementById('infoFollowers').textContent = fmtNum(d.followerCount);
     document.getElementById('infoFollowing').textContent = fmtNum(d.followingCount);
     document.getElementById('infoLikes').textContent     = fmtNum(d.heartCount || d.likeCount);
@@ -440,22 +504,14 @@
   }
 
   /* SEARCH */
-  async function doSearch(raw){
-    let username = (raw || document.getElementById('searchInput').value).trim().replace(/^@+/,'');
+  async function doSearch(rawInput){
+    let username = (rawInput || document.getElementById('searchInput').value).trim().replace(/^@+/,'');
     if(!username){ showStatus('No username','Please enter a TikTok username to search.'); return; }
 
     document.getElementById('searchBtn').disabled = true;
     showLoading();
 
     try {
-      // Try RapidAPI-style TikTok scraper endpoints (public, no key required wrappers)
-      // We'll try a couple of known free-tier public proxy endpoints
-      const endpoints = [
-        `https://tiktok-scraper7.p.rapidapi.com/user/info?unique_id=${encodeURIComponent(username)}`,
-        `https://api22-normal-c-useast2a.tiktokv.com/aweme/v1/user/profile/other/?unique_id=${encodeURIComponent(username)}`
-      ];
-
-      // Primary: use a CORS-friendly public TikTok info API
       const res = await fetch(
         `https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(username)}`,
         { headers: { 'Accept': 'application/json' } }
@@ -464,7 +520,6 @@
       if(!res.ok) throw new Error('Network error: '+res.status);
       const json = await res.json();
 
-      // tikwm response shape: { code: 0, data: { user: {...}, stats: {...} } }
       if(json.code !== 0 && json.code !== 200 && json.code !== '0'){
         throw new Error(json.msg || json.message || 'User not found');
       }
@@ -472,6 +527,15 @@
       const raw_data = json.data || {};
       const user     = raw_data.user || raw_data;
       const stats    = raw_data.stats || {};
+
+      // tikwm sometimes nests the region as user.region or at the top-level data.region
+      const region =
+        user.region       ||
+        user.country      ||
+        raw_data.region   ||
+        raw_data.country  ||
+        user.location     ||
+        user.locale       || '';
 
       const profile = {
         id:             user.id        || user.uid       || '—',
@@ -481,7 +545,7 @@
         avatarUrl:      user.avatarThumb || user.avatar_thumb || user.avatar_medium || '',
         verified:       user.verified  || false,
         privateAccount: user.secret    || user.privateAccount || false,
-        region:         user.region || user.country || user.location || user.locale || '',
+        region:         region,
         followerCount:  stats.followerCount  || user.followerCount  || 0,
         followingCount: stats.followingCount || user.followingCount || 0,
         heartCount:     stats.heartCount     || user.heartCount     || stats.diggCount || 0,
