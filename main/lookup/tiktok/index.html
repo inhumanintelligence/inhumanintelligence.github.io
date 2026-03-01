@@ -533,7 +533,7 @@
       const d = json.data || {};
       const user  = d.user  || d;
       const stats = d.stats || {};
-      alert('REGION:' + user.region + ' | KEYS:' + Object.keys(user).join(','));
+      alert(JSON.stringify(json).slice(0,1000));
 
       const profile = {
         id:             user.id          || user.uid            || '—',
