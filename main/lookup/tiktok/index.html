@@ -481,7 +481,7 @@
         avatarUrl:      user.avatarThumb || user.avatar_thumb || user.avatar_medium || '',
         verified:       user.verified  || false,
         privateAccount: user.secret    || user.privateAccount || false,
-        region:         user.region    || user.country   || '',
+        region:         user.region || user.country || user.location || user.locale || '',
         followerCount:  stats.followerCount  || user.followerCount  || 0,
         followingCount: stats.followingCount || user.followingCount || 0,
         heartCount:     stats.heartCount     || user.heartCount     || stats.diggCount || 0,
