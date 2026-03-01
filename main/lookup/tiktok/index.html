@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikTok User Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root { --card-bg: rgba(14,14,14,0.96); }
+
+  body {
+    min-height: 100vh;
+    font-family: 'Nunito', sans-serif;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow-x: hidden; padding: 48px 24px;
+    background: #0a0a0a;
+  }
+
+  @media (max-width: 380px) { body { padding: 24px 12px; } }
+
+  .bg { position: fixed; inset: 0; z-index: 0; background: #0a0a0a; }
+
+  .vignette {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center,
+      transparent 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.75) 100%);
+    z-index: 1;
+  }
+
+  .scanlines {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(to bottom,
+      transparent 0px, transparent 3px,
+      rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+    z-index: 2; pointer-events: none;
+  }
+
+  /* ENTER */
+  #enter-screen {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+    cursor: pointer; transition: opacity 0.9s ease;
+  }
+  #enter-screen.hiding { opacity: 0; pointer-events: none; }
+
+  .enter-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px; letter-spacing: 2px;
+    color: rgba(255,255,255,0.6); text-transform: lowercase;
+    animation: labelBreath 2.4s ease-in-out infinite;
+  }
+  @keyframes labelBreath {
+    0%,100% { opacity: 0.3; } 50% { opacity: 0.9; }
+  }
+
+  /* MAIN */
+  #main-wrap {
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 20px;
+    width: 100%; max-width: 480px;
+    filter: blur(18px) brightness(0.3);
+    opacity: 0; pointer-events: none;
+    transition: filter 1.3s cubic-bezier(0.23,1,0.32,1), opacity 0.9s ease;
+  }
+  #main-wrap.revealed { filter: blur(0px) brightness(1); opacity: 1; pointer-events: all; }
+
+  #main-wrap .site-header,
+  #main-wrap .search-wrap {
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.23,1,0.32,1);
+  }
+  #main-wrap.revealed .site-header { opacity:1; transform:translateY(0); transition-delay:0.10s; }
+  #main-wrap.revealed .search-wrap { opacity:1; transform:translateY(0); transition-delay:0.25s; }
+
+  /* HEADER */
+  .site-header { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .site-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 36px; font-weight: 400; letter-spacing: -1px; color: #f0f0f0;
+  }
+  .site-sub {
+    font-size: 11px; font-weight: 700; color: #555;
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  /* SPINNING CHROME BORDER */
+  @property --angle {
+    syntax: '<angle>'; initial-value: 0deg; inherits: false;
+  }
+
+  .card-wrap {
+    position: relative; width: 100%;
+    border-radius: 28px; padding: 2px;
+    animation: popIn 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .card-wrap::before {
+    content: ''; position: absolute; inset: 0; border-radius: 28px;
+    background: conic-gradient(
+      from var(--angle),
+      #000 0%, #111 10%, #2a2a2a 18%,
+      #555 25%, #909090 32%, #d0d0d0 38%,
+      #fff 43%, #d0d0d0 48%, #909090 55%,
+      #555 62%, #2a2a2a 70%, #111 78%,
+      #000 85%, #000 100%
+    );
+    animation: borderSpin 2.8s linear infinite; z-index: 0;
+  }
+  @keyframes borderSpin { to { --angle: 360deg; } }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.92) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .card {
+    position: relative; z-index: 1; width: 100%;
+    background: var(--card-bg);
+    backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
+    border-radius: 26px; padding: 32px 28px;
+    display: flex; flex-direction: column; gap: 20px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 64px rgba(0,0,0,0.8);
+    will-change: transform;
+  }
+  @media (max-width: 380px) { .card { padding: 22px 16px; } }
+
+  /* SEARCH */
+  .search-wrap { width: 100%; }
+  .input-row { display: flex; gap: 10px; align-items: center; }
+
+  .search-field {
+    flex: 1; background: #0d0d0d;
+    border: 1px solid #222; border-radius: 100px;
+    padding: 12px 20px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 700; color: #e0e0e0;
+    outline: none; transition: border-color 0.3s, box-shadow 0.3s;
+    caret-color: #aaa;
+  }
+  .search-field::placeholder { color: #444; }
+  .search-field:focus {
+    border-color: rgba(255,255,255,0.18);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.03);
+  }
+
+  .search-btn {
+    flex-shrink: 0;
+    background: #181818; border: 1px solid #2e2e2e; border-radius: 100px;
+    padding: 12px 22px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px; color: #bbb;
+    cursor: pointer; letter-spacing: 0.5px;
+    transition: transform 0.15s, background 0.2s, color 0.2s;
+  }
+  .search-btn:hover { background: #222; color: #fff; transform: translateY(-1px); }
+  .search-btn:active { transform: scale(0.97); }
+  .search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .divider { height: 1px; background: #1a1a1a; }
+
+  /* LOADING */
+  .loading { display: none; align-items: center; justify-content: center; gap: 6px; padding: 24px 0; }
+  .loading.visible { display: flex; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #555; animation: dotBounce 0.9s ease-in-out infinite; }
+  .dot:nth-child(2) { animation-delay:.15s; background:#777; }
+  .dot:nth-child(3) { animation-delay:.30s; background:#999; }
+  @keyframes dotBounce {
+    0%,100% { transform: translateY(0); opacity: 0.4; }
+    50%      { transform: translateY(-8px); opacity: 1; }
+  }
+
+  /* STATUS */
+  .status-msg { display: none; flex-direction: column; align-items: center; gap: 8px; padding: 24px 0; text-align: center; }
+  .status-msg.visible { display: flex; }
+  .status-msg .msg-title { font-family: 'Fredoka One', cursive; font-size: 18px; color: #aaa; }
+  .status-msg .msg-sub { font-size: 11px; font-weight: 700; color: #555; max-width: 260px; line-height: 1.5; }
+
+  /* PROFILE */
+  .profile-card { display: none; flex-direction: column; gap: 16px; animation: fadeSlideIn 0.5s cubic-bezier(0.23,1,0.32,1) both; }
+  .profile-card.visible { display: flex; }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .profile-top { display: flex; align-items: center; gap: 16px; }
+
+  .avatar-ring { position: relative; flex-shrink: 0; width: 72px; height: 72px; }
+  .avatar-ring::before {
+    content: ''; position: absolute; inset: -3px; border-radius: 50%;
+    background: conic-gradient(from var(--angle), #111, #444, #999, #eee, #999, #444, #111);
+    animation: borderSpin 2s linear infinite; z-index: 0;
+  }
+  .avatar-ring img {
+    position: relative; z-index: 1;
+    width: 72px; height: 72px; border-radius: 50%;
+    object-fit: cover; border: 3px solid #0e0e0e;
+    background: #111; display: block;
+  }
+
+  .profile-info { flex: 1; overflow: hidden; }
+  .profile-nick { font-size: 20px; font-weight: 900; color: #f0f0f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .profile-handle { font-size: 11px; font-weight: 700; color: #555; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+  .profile-verified { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 10px; font-weight: 800; color: #777; letter-spacing: 0.5px; }
+
+  .bio-text { font-size: 12px; font-weight: 600; color: #777; line-height: 1.6; border-left: 2px solid #1f1f1f; padding-left: 12px; }
+
+  /* INFO ROWS */
+  .info-rows { display: flex; flex-direction: column; gap: 1px; border-radius: 16px; overflow: hidden; border: 1px solid #1a1a1a; }
+  .info-row { display: flex; align-items: center; justify-content: space-between; background: #0d0d0d; padding: 11px 16px; gap: 12px; }
+  .info-row:not(:last-child) { border-bottom: 1px solid #141414; }
+  .info-row-label { font-size: 10px; font-weight: 800; color: #444; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
+  .info-row-value { font-size: 12px; font-weight: 700; color: #ccc; text-align: right; word-break: break-all; }
+  .info-row-value.mono { font-family: 'Courier New', monospace; font-size: 11px; color: #aaa; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 100px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
+  .badge.private { background: #1a1a1a; color: #888; border: 1px solid #2a2a2a; }
+  .badge.public  { background: #181818; color: #aaa; border: 1px solid #2e2e2e; }
+
+  .profile-link {
+    display: flex; align-items: center; justify-content: center;
+    background: #111; border: 1px solid #2a2a2a; border-radius: 100px; padding: 12px;
+    text-decoration: none;
+    font-family: 'Fredoka One', cursive; font-size: 14px; color: #bbb; letter-spacing: 0.5px;
+    transition: background 0.2s, transform 0.15s, color 0.2s;
+  }
+  .profile-link:hover { background: #1a1a1a; color: #fff; transform: translateY(-1px); }
+
+  /* RECENT */
+  .recent-section { display: none; width: 100%; }
+  .recent-section.visible { display: block; }
+  .recent-label { font-size: 9px; font-weight: 800; color: #444; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+  .recent-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: #0d0d0d; border: 1px solid #1f1f1f; border-radius: 100px; padding: 5px 14px; font-size: 11px; font-weight: 700; color: #666; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+  .chip:hover { border-color: #444; color: #ccc; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
+
+<div id="enter-screen" role="button" tabindex="0" aria-label="Click to enter">
+  <span class="enter-label">click to enter</span>
+</div>
+
+<div id="main-wrap" role="main">
+
+  <div class="site-header">
+    <h1 class="site-title">TikTok User Lookup</h1>
+    <span class="site-sub">made by kay ✦</span>
+  </div>
+
+  <div class="search-wrap">
+    <div class="card-wrap">
+      <div class="card" id="card">
+
+        <div class="input-row">
+          <input class="search-field" id="searchInput" type="text"
+            placeholder="@username or username"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            aria-label="TikTok username">
+          <button class="search-btn" id="searchBtn">Search</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="loading" id="loadingEl" aria-live="polite">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+
+        <div class="status-msg" id="statusMsg" aria-live="polite">
+          <div class="msg-title" id="statusTitle">Search a user</div>
+          <div class="msg-sub"   id="statusSub">Enter a TikTok username above to look them up</div>
+        </div>
+
+        <div class="profile-card" id="profileCard" aria-live="polite">
+          <div class="profile-top">
+            <div class="avatar-ring">
+              <img id="profileAvatar" src="" alt="avatar">
+            </div>
+            <div class="profile-info">
+              <div class="profile-nick" id="profileNick">—</div>
+              <div class="profile-handle" id="profileHandle">@—</div>
+              <div class="profile-verified" id="profileVerified" style="display:none">✦ verified</div>
+            </div>
+          </div>
+          <div class="bio-text" id="profileBio" style="display:none"></div>
+          <div class="info-rows">
+            <div class="info-row"><span class="info-row-label">User ID</span><span class="info-row-value mono" id="infoUserId">—</span></div>
+            <div class="info-row"><span class="info-row-label">Account Type</span><span class="info-row-value" id="infoAccountType">—</span></div>
+            <div class="info-row"><span class="info-row-label">Country</span><span class="info-row-value" id="infoCountry">—</span></div>
+            <div class="info-row"><span class="info-row-label">Followers</span><span class="info-row-value" id="infoFollowers">—</span></div>
+            <div class="info-row"><span class="info-row-label">Following</span><span class="info-row-value" id="infoFollowing">—</span></div>
+            <div class="info-row"><span class="info-row-label">Likes</span><span class="info-row-value" id="infoLikes">—</span></div>
+            <div class="info-row"><span class="info-row-label">Videos</span><span class="info-row-value" id="infoVideos">—</span></div>
+            <div class="info-row"><span class="info-row-label">Account Created</span><span class="info-row-value mono" id="infoCreated">—</span></div>
+          </div>
+          <a class="profile-link" id="profileLink" href="#" target="_blank" rel="noopener">Open on TikTok</a>
+        </div>
+
+        <div class="recent-section" id="recentSection">
+          <div class="divider" style="margin-bottom:14px"></div>
+          <div class="recent-label">Recent</div>
+          <div class="recent-chips" id="recentChips"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ENTER */
+  let entered = false;
+  const enterScreen = document.getElementById('enter-screen');
+  const mainWrap    = document.getElementById('main-wrap');
+
+  function doEnter() {
+    if (entered) return; entered = true;
+    enterScreen.classList.add('hiding');
+    mainWrap.classList.add('revealed');
+    setTimeout(() => enterScreen.remove(), 1000);
+    renderRecent();
+  }
+  enterScreen.addEventListener('click', doEnter);
+  enterScreen.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') doEnter(); });
+
+  /* TILT */
+  const card = document.getElementById('card');
+  const EDGE = 0.28, MAX_T = 5;
+  let tX=0,tY=0,cX=0,cY=0,hovering=false,rafId=null;
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  function calcTilt(px,py,r){
+    const cx=(px-r.left)/r.width,cy=(py-r.top)/r.height;
+    let tx=0,ty=0;
+    if(cx<EDGE)tx=-(1-cx/EDGE); else if(cx>1-EDGE)tx=(cx-(1-EDGE))/EDGE;
+    if(cy<EDGE)ty=(1-cy/EDGE); else if(cy>1-EDGE)ty=-((cy-(1-EDGE))/EDGE);
+    return{rotX:ty*MAX_T,rotY:tx*MAX_T};
+  }
+  function tiltLoop(){
+    cX=lerp(cX,tX,.1);cY=lerp(cY,tY,.1);
+    card.style.transform=`perspective(1400px) rotateX(${cX.toFixed(3)}deg) rotateY(${cY.toFixed(3)}deg)`;
+    if(hovering||Math.abs(cX-tX)>.01||Math.abs(cY-tY)>.01)rafId=requestAnimationFrame(tiltLoop);
+    else{rafId=null;card.style.transform='';}
+  }
+  function startTilt(){if(!rafId)rafId=requestAnimationFrame(tiltLoop);}
+  card.addEventListener('mouseenter',()=>{hovering=true;startTilt();});
+  card.addEventListener('mousemove',e=>{const{rotX,rotY}=calcTilt(e.clientX,e.clientY,card.getBoundingClientRect());tX=rotX;tY=rotY;});
+  card.addEventListener('mouseleave',()=>{hovering=false;tX=0;tY=0;startTilt();});
+
+  /* RECENT */
+  const RKEY='tiklook_recent';
+  const getRecent=()=>{try{return JSON.parse(localStorage.getItem(RKEY))||[];}catch{return[];}};
+  function addRecent(u){let r=getRecent().filter(x=>x!==u);r.unshift(u);r=r.slice(0,6);try{localStorage.setItem(RKEY,JSON.stringify(r));}catch{}}
+  function renderRecent(){
+    const r=getRecent(),section=document.getElementById('recentSection'),chips=document.getElementById('recentChips');
+    if(!r.length){section.classList.remove('visible');return;}
+    section.classList.add('visible');chips.innerHTML='';
+    r.forEach(u=>{const c=document.createElement('div');c.className='chip';c.textContent='@'+u;c.addEventListener('click',()=>{document.getElementById('searchInput').value=u;doSearch(u);});chips.appendChild(c);});
+  }
+
+  /* UI */
+  function showLoading(){document.getElementById('loadingEl').classList.add('visible');document.getElementById('statusMsg').classList.remove('visible');document.getElementById('profileCard').classList.remove('visible');}
+  function showStatus(t,s){document.getElementById('loadingEl').classList.remove('visible');document.getElementById('profileCard').classList.remove('visible');document.getElementById('statusTitle').textContent=t;document.getElementById('statusSub').textContent=s;document.getElementById('statusMsg').classList.add('visible');}
+  function showProfile(d){
+    document.getElementById('loadingEl').classList.remove('visible');
+    document.getElementById('statusMsg').classList.remove('visible');
+    document.getElementById('profileCard').classList.add('visible');
+    document.getElementById('profileNick').textContent=d.nickname||d.username;
+    document.getElementById('profileHandle').textContent='@'+d.username;
+    document.getElementById('profileLink').href=`https://www.tiktok.com/@${d.username}`;
+    const img=document.getElementById('profileAvatar');
+    if(d.avatarUrl){img.src=d.avatarUrl;img.onerror=()=>{img.style.display='none';};}else{img.style.display='none';}
+    document.getElementById('profileVerified').style.display=d.verified?'inline-flex':'none';
+    const bio=document.getElementById('profileBio');
+    if(d.bio){bio.textContent=d.bio;bio.style.display='block';}else{bio.style.display='none';}
+    document.getElementById('infoCountry').textContent=d.country||'Unknown';
+    document.getElementById('infoUserId').textContent=d.userId||'—';
+    document.getElementById('infoAccountType').textContent=d.private===true?'Private':'Public';
+    document.getElementById('infoFollowers').textContent=fmt(d.followers);
+    document.getElementById('infoFollowing').textContent=fmt(d.following);
+    document.getElementById('infoLikes').textContent=fmt(d.likes);
+    document.getElementById('infoVideos').textContent=fmt(d.videos);
+    const created=d.created?new Date(d.created*1000).toISOString().replace('T',' ').slice(0,19):'—';
+    document.getElementById('infoCreated').textContent=created;
+  }
+  function fmt(n){if(n===undefined||n===null)return'—';if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1e3)return(n/1e3).toFixed(1).replace('.0','')+'K';return String(n);}
+
+  /* SEARCH */
+  const RAPIDAPI_KEY = 'bcad11b9fcmsh195b9d5606e7d6fp1eeed9jsn23b64ec685be';
+
+  async function doSearch(raw){
+    const username=raw.replace(/^@/,'').trim();
+    if(!username){showStatus('Search a user','Enter a TikTok username above to look them up');return;}
+    document.getElementById('searchBtn').disabled=true;
+    showLoading();
+    try{
+      const res=await fetch(`https://tiktok-scraper7.p.rapidapi.com/user/info?unique_id=${encodeURIComponent(username)}`,{
+        method:'GET',
+        headers:{'x-rapidapi-key':RAPIDAPI_KEY,'x-rapidapi-host':'tiktok-scraper7.p.rapidapi.com'}
+      });
+      const json=await res.json();
+      if(json.message==='Too many requests')throw new Error('rate_limit');
+      const u=json?.data?.user;
+      const s=json?.data?.stats;
+      if(!u)throw new Error('no_user');
+      showProfile({
+        username:  u.uniqueId,
+        nickname:  u.nickname,
+        bio:       u.signature,
+        verified:  u.verified,
+        avatarUrl: u.avatarMedium||u.avatarLarger,
+        country:   u.region||null,
+        userId:    u.id,
+        secUid:    u.secUid,
+        private:   u.privateAccount,
+        followers: s?.followerCount,
+        following: s?.followingCount,
+        likes:     s?.heartCount,
+        created:   u.createTime,
+      });
+      addRecent(u.uniqueId);renderRecent();
+    }catch(err){
+      console.error(err);
+      if(err.message==='rate_limit')showStatus('Rate limited','Too many requests. Wait a moment and try again.');
+      else if(err.message==='no_user')showStatus('User not found',`@${username} doesn't seem to exist on TikTok.`);
+      else showStatus('Something went wrong','Could not fetch data. Check the username and try again.');
+    }finally{document.getElementById('searchBtn').disabled=false;}
+  }
+
+  document.getElementById('searchBtn').addEventListener('click',()=>doSearch(document.getElementById('searchInput').value));
+  document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(e.target.value);});
+  showStatus('Search a user','Enter a TikTok username above to look them up');
+</script>
+</body>
+</html>
