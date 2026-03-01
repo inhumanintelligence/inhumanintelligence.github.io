@@ -503,6 +503,28 @@
     document.getElementById('infoCreated').textContent   = fmtDate(d.createTime);
   }
 
+  /* fetch region via TikTok's own web API through a CORS proxy */
+  async function fetchRegion(username) {
+    const proxies = [
+      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    ];
+    const ttUrl = `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(username)}&aid=1988&app_name=tiktok_web&device_platform=web_pc`;
+    for (const proxy of proxies) {
+      try {
+        const r = await fetch(proxy(ttUrl), { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) continue;
+        const j = await r.json();
+        const region =
+          j?.userInfo?.user?.region ||
+          j?.userInfo?.user?.country ||
+          j?.user?.region || '';
+        if (region) return region;
+      } catch { /* try next proxy */ }
+    }
+    return '';
+  }
+
   /* SEARCH */
   async function doSearch(rawInput){
     let username = (rawInput || document.getElementById('searchInput').value).trim().replace(/^@+/,'');
@@ -512,10 +534,12 @@
     showLoading();
 
     try {
-      const res = await fetch(
-        `https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(username)}`,
-        { headers: { 'Accept': 'application/json' } }
-      );
+      // Run both fetches in parallel — main data + region
+      const [res, region] = await Promise.all([
+        fetch(`https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(username)}`,
+          { headers: { 'Accept': 'application/json' } }),
+        fetchRegion(username),
+      ]);
 
       if(!res.ok) throw new Error('Network error: '+res.status);
       const json = await res.json();
@@ -525,31 +549,23 @@
       }
 
       const raw_data = json.data || {};
-      const user     = raw_data.user || raw_data;
-      const stats    = raw_data.stats || {};
-
-      // tikwm sometimes nests the region as user.region or at the top-level data.region
-      const region =
-        user.region       ||
-        user.country      ||
-        raw_data.region   ||
-        raw_data.country  ||
-        user.location     ||
-        user.locale       || '';
+      const user  = raw_data.user  || raw_data;
+      const stats = raw_data.stats || {};
 
       const profile = {
-        id:             user.id        || user.uid       || '—',
-        username:       user.unique_id || user.uniqueId  || username,
-        nickname:       user.nickname  || '',
-        bio:            user.signature || user.bio       || '',
-        avatarUrl:      user.avatarThumb || user.avatar_thumb || user.avatar_medium || '',
-        verified:       user.verified  || false,
-        privateAccount: user.secret    || user.privateAccount || false,
-        region:         region,
-        followerCount:  stats.followerCount  || user.followerCount  || 0,
-        followingCount: stats.followingCount || user.followingCount || 0,
-        heartCount:     stats.heartCount     || user.heartCount     || stats.diggCount || 0,
-        videoCount:     stats.videoCount     || user.videoCount     || 0,
+        id:             user.id         || user.user_id  || user.uid       || '—',
+        username:       user.unique_id  || user.uniqueId || username,
+        nickname:       user.nickname   || '',
+        bio:            user.signature  || user.bio      || '',
+        avatarUrl:      user.avatarThumb || user.avatar_thumb || user.avatarMedium || user.avatar_medium || user.avatar || '',
+        verified:       user.verified   || false,
+        privateAccount: user.secret     || user.privateAccount || false,
+        region:         region || user.region || raw_data.region || user.country || '',
+        followerCount:  stats.followerCount  || user.followerCount  || user.fans_count      || 0,
+        followingCount: stats.followingCount || user.followingCount || user.following_count  || 0,
+        heartCount:     stats.heartCount     || user.heartCount     || user.heart            ||
+                        stats.diggCount      || user.diggCount      || 0,
+        videoCount:     stats.videoCount     || user.videoCount     || user.video_count      || 0,
         createTime:     user.createTime      || user.create_time    || null,
       };
 
