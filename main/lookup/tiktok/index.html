@@ -503,44 +503,6 @@
     document.getElementById('infoCreated').textContent   = fmtDate(d.createTime);
   }
 
-  /* fetch region by scraping TikTok's own page — region is embedded in SIGI_STATE JSON */
-  async function fetchRegion(username) {
-    const ttPageUrl = `https://www.tiktok.com/@${encodeURIComponent(username)}`;
-    const proxies = [
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(ttPageUrl)}`,
-      `https://corsproxy.io/?url=${encodeURIComponent(ttPageUrl)}`,
-      `https://thingproxy.freeboard.io/fetch/${ttPageUrl}`,
-    ];
-    for (const url of proxies) {
-      try {
-        const r = await fetch(url);
-        if (!r.ok) continue;
-        const html = await r.text();
-
-        // TikTok embeds full user JSON in a <script id="SIGI_STATE"> tag
-        const sigiMatch = html.match(/<script id="SIGI_STATE"[^>]*>([\s\S]*?)<\/script>/);
-        if (sigiMatch) {
-          const sigi = JSON.parse(sigiMatch[1]);
-          // Walk the UserModule or UserPage objects
-          const users = sigi?.UserModule?.users || sigi?.UserPage?.userInfo?.user
-            ? { u: sigi.UserPage.userInfo.user } : {};
-          const userObj = Object.values(sigi?.UserModule?.users || {})[0]
-            || sigi?.UserPage?.userInfo?.user;
-          if (userObj?.region) return userObj.region;
-        }
-
-        // Fallback: __NEXT_DATA__ (older TikTok pages)
-        const nextMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-        if (nextMatch) {
-          const next = JSON.parse(nextMatch[1]);
-          const region = next?.props?.pageProps?.userInfo?.user?.region;
-          if (region) return region;
-        }
-      } catch { /* try next */ }
-    }
-    return '';
-  }
-
   /* SEARCH */
   async function doSearch(rawInput){
     let username = (rawInput || document.getElementById('searchInput').value).trim().replace(/^@+/,'');
@@ -550,12 +512,16 @@
     showLoading();
 
     try {
-      // Run both fetches in parallel — main data + region
-      const [res, region] = await Promise.all([
-        fetch(`https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(username)}`,
-          { headers: { 'Accept': 'application/json' } }),
-        fetchRegion(username),
-      ]);
+      const res = await fetch(
+        `https://tiktok-scraper7.p.rapidapi.com/user/info?unique_id=${encodeURIComponent(username)}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'x-rapidapi-key': 'bcad11b9fcmsh195b9d5606e7d6fp1eeed9jsn23b64ec685be',
+            'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com',
+          }
+        }
+      );
 
       if(!res.ok) throw new Error('Network error: '+res.status);
       const json = await res.json();
@@ -564,24 +530,23 @@
         throw new Error(json.msg || json.message || 'User not found');
       }
 
-      const raw_data = json.data || {};
-      const user  = raw_data.user  || raw_data;
-      const stats = raw_data.stats || {};
+      const d = json.data || {};
+      const user  = d.user  || d;
+      const stats = d.stats || {};
 
       const profile = {
-        id:             user.id         || user.user_id  || user.uid       || '—',
-        username:       user.unique_id  || user.uniqueId || username,
-        nickname:       user.nickname   || '',
-        bio:            user.signature  || user.bio      || '',
-        avatarUrl:      user.avatarThumb || user.avatar_thumb || user.avatarMedium || user.avatar_medium || user.avatar || '',
-        verified:       user.verified   || false,
-        privateAccount: user.secret     || user.privateAccount || false,
-        region:         region || user.region || raw_data.region || user.country || '',
-        followerCount:  stats.followerCount  || user.followerCount  || user.fans_count      || 0,
-        followingCount: stats.followingCount || user.followingCount || user.following_count  || 0,
-        heartCount:     stats.heartCount     || user.heartCount     || user.heart            ||
-                        stats.diggCount      || user.diggCount      || 0,
-        videoCount:     stats.videoCount     || user.videoCount     || user.video_count      || 0,
+        id:             user.id          || user.uid            || '—',
+        username:       user.unique_id   || user.uniqueId       || username,
+        nickname:       user.nickname    || '',
+        bio:            user.signature   || user.bio            || '',
+        avatarUrl:      user.avatarThumb || user.avatar_thumb   || user.avatarMedium || user.avatar || '',
+        verified:       user.verified    || false,
+        privateAccount: user.secret      || user.privateAccount || false,
+        region:         user.region      || user.country        || d.region || '',
+        followerCount:  stats.followerCount  || user.followerCount  || 0,
+        followingCount: stats.followingCount || user.followingCount || 0,
+        heartCount:     stats.heartCount     || user.heartCount     || stats.heart || user.heart || 0,
+        videoCount:     stats.videoCount     || user.videoCount     || 0,
         createTime:     user.createTime      || user.create_time    || null,
       };
 
