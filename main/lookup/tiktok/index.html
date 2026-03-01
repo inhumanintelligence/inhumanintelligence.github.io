@@ -381,17 +381,21 @@
     document.getElementById('profileVerified').style.display=d.verified?'inline-flex':'none';
     const bio=document.getElementById('profileBio');
     if(d.bio){bio.textContent=d.bio;bio.style.display='block';}else{bio.style.display='none';}
-    document.getElementById('infoCountry').textContent=d.country||'Unknown';
+    // FIX 1: country — try multiple fields, fall back to "Unknown"
+    document.getElementById('infoCountry').textContent = d.country || 'Unknown';
     document.getElementById('infoUserId').textContent=d.userId||'—';
     document.getElementById('infoAccountType').textContent=d.private===true?'Private':'Public';
     document.getElementById('infoFollowers').textContent=fmt(d.followers);
     document.getElementById('infoFollowing').textContent=fmt(d.following);
     document.getElementById('infoLikes').textContent=fmt(d.likes);
-    document.getElementById('infoVideos').textContent=fmt(d.videos);
+    // FIX 2: videos — show 0 instead of —
+    document.getElementById('infoVideos').textContent = fmtVideos(d.videos);
     const created=d.created?new Date(d.created*1000).toISOString().replace('T',' ').slice(0,19):'—';
     document.getElementById('infoCreated').textContent=created;
   }
   function fmt(n){if(n===undefined||n===null)return'—';if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1e3)return(n/1e3).toFixed(1).replace('.0','')+'K';return String(n);}
+  // FIX 2: separate formatter for videos that treats 0 as valid
+  function fmtVideos(n){if(n===undefined||n===null)return'0';return fmt(n);}
 
   /* SEARCH */
   const RAPIDAPI_KEY = 'bcad11b9fcmsh195b9d5606e7d6fp1eeed9jsn23b64ec685be';
@@ -417,13 +421,16 @@
         bio:       u.signature,
         verified:  u.verified,
         avatarUrl: u.avatarMedium||u.avatarLarger,
-        country:   u.region||null,
+        // FIX 1: try multiple country fields the API might return
+        country:   u.region || u.country || u.location || null,
         userId:    u.id,
         secUid:    u.secUid,
         private:   u.privateAccount,
         followers: s?.followerCount,
         following: s?.followingCount,
         likes:     s?.heartCount,
+        // FIX 2: correct API field for video count
+        videos:    s?.videoCount ?? 0,
         created:   u.createTime,
       });
       addRecent(u.uniqueId);renderRecent();
