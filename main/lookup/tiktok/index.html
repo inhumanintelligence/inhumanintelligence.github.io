@@ -366,85 +366,151 @@
     r.forEach(u=>{const c=document.createElement('div');c.className='chip';c.textContent='@'+u;c.addEventListener('click',()=>{document.getElementById('searchInput').value=u;doSearch(u);});chips.appendChild(c);});
   }
 
-  /* UI */
-  function showLoading(){document.getElementById('loadingEl').classList.add('visible');document.getElementById('statusMsg').classList.remove('visible');document.getElementById('profileCard').classList.remove('visible');}
-  function showStatus(t,s){document.getElementById('loadingEl').classList.remove('visible');document.getElementById('profileCard').classList.remove('visible');document.getElementById('statusTitle').textContent=t;document.getElementById('statusSub').textContent=s;document.getElementById('statusMsg').classList.add('visible');}
+  /* UI HELPERS */
+  function showLoading(){
+    document.getElementById('loadingEl').classList.add('visible');
+    document.getElementById('statusMsg').classList.remove('visible');
+    document.getElementById('profileCard').classList.remove('visible');
+  }
+  function showStatus(t,s){
+    document.getElementById('loadingEl').classList.remove('visible');
+    document.getElementById('profileCard').classList.remove('visible');
+    document.getElementById('statusTitle').textContent=t;
+    document.getElementById('statusSub').textContent=s;
+    document.getElementById('statusMsg').classList.add('visible');
+  }
+
+  function fmtNum(n){
+    if(n===null||n===undefined||n==='')return'—';
+    n=parseInt(n,10);if(isNaN(n))return'—';
+    if(n>=1_000_000)return(n/1_000_000).toFixed(1).replace(/\.0$/,'')+'M';
+    if(n>=1_000)return(n/1_000).toFixed(1).replace(/\.0$/,'')+'K';
+    return n.toLocaleString();
+  }
+  function fmtDate(ts){
+    if(!ts)return'—';
+    const d=new Date(ts*1000);
+    if(isNaN(d))return'—';
+    return d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  }
+
   function showProfile(d){
     document.getElementById('loadingEl').classList.remove('visible');
     document.getElementById('statusMsg').classList.remove('visible');
     document.getElementById('profileCard').classList.add('visible');
-    document.getElementById('profileNick').textContent=d.nickname||d.username;
-    document.getElementById('profileHandle').textContent='@'+d.username;
-    document.getElementById('profileLink').href=`https://www.tiktok.com/@${d.username}`;
-    const img=document.getElementById('profileAvatar');
-    if(d.avatarUrl){img.src=d.avatarUrl;img.onerror=()=>{img.style.display='none';};}else{img.style.display='none';}
-    document.getElementById('profileVerified').style.display=d.verified?'inline-flex':'none';
-    const bio=document.getElementById('profileBio');
-    if(d.bio){bio.textContent=d.bio;bio.style.display='block';}else{bio.style.display='none';}
-    // FIX 1: country — try multiple fields, fall back to "Unknown"
-    document.getElementById('infoCountry').textContent = d.country || 'Unknown';
-    document.getElementById('infoUserId').textContent=d.userId||'—';
-    document.getElementById('infoAccountType').textContent=d.private===true?'Private':'Public';
-    document.getElementById('infoFollowers').textContent=fmt(d.followers);
-    document.getElementById('infoFollowing').textContent=fmt(d.following);
-    document.getElementById('infoLikes').textContent=fmt(d.likes);
-    // FIX 2: videos — show 0 instead of —
-    document.getElementById('infoVideos').textContent = fmtVideos(d.videos);
-    const created=d.created?new Date(d.created*1000).toISOString().replace('T',' ').slice(0,19):'—';
-    document.getElementById('infoCreated').textContent=created;
+
+    document.getElementById('profileNick').textContent   = d.nickname || d.username || '—';
+    document.getElementById('profileHandle').textContent = '@'+(d.username||'—');
+    document.getElementById('profileLink').href          = `https://www.tiktok.com/@${d.username}`;
+
+    const img = document.getElementById('profileAvatar');
+    if(d.avatarUrl){
+      img.src = d.avatarUrl;
+      img.style.display = 'block';
+      img.onerror = ()=>{ img.style.display='none'; };
+    } else {
+      img.style.display = 'none';
+    }
+
+    const verifiedEl = document.getElementById('profileVerified');
+    verifiedEl.style.display = d.verified ? 'inline-flex' : 'none';
+
+    const bioEl = document.getElementById('profileBio');
+    if(d.bio && d.bio.trim()){
+      bioEl.textContent = d.bio;
+      bioEl.style.display = 'block';
+    } else {
+      bioEl.style.display = 'none';
+    }
+
+    document.getElementById('infoUserId').textContent = d.id || '—';
+
+    const accountTypeEl = document.getElementById('infoAccountType');
+    const isPrivate = d.privateAccount === true || d.privateAccount === 'true';
+    accountTypeEl.innerHTML = isPrivate
+      ? '<span class="badge private">Private</span>'
+      : '<span class="badge public">Public</span>';
+
+    document.getElementById('infoCountry').textContent   = d.region || d.country || '—';
+    document.getElementById('infoFollowers').textContent = fmtNum(d.followerCount);
+    document.getElementById('infoFollowing').textContent = fmtNum(d.followingCount);
+    document.getElementById('infoLikes').textContent     = fmtNum(d.heartCount || d.likeCount);
+    document.getElementById('infoVideos').textContent    = fmtNum(d.videoCount);
+    document.getElementById('infoCreated').textContent   = fmtDate(d.createTime);
   }
-  function fmt(n){if(n===undefined||n===null)return'—';if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1e3)return(n/1e3).toFixed(1).replace('.0','')+'K';return String(n);}
-  // FIX 2: separate formatter for videos that treats 0 as valid
-  function fmtVideos(n){if(n===undefined||n===null)return'0';return fmt(n);}
 
   /* SEARCH */
-  const RAPIDAPI_KEY = 'bcad11b9fcmsh195b9d5606e7d6fp1eeed9jsn23b64ec685be';
-
   async function doSearch(raw){
-    const username=raw.replace(/^@/,'').trim();
-    if(!username){showStatus('Search a user','Enter a TikTok username above to look them up');return;}
-    document.getElementById('searchBtn').disabled=true;
+    let username = (raw || document.getElementById('searchInput').value).trim().replace(/^@+/,'');
+    if(!username){ showStatus('No username','Please enter a TikTok username to search.'); return; }
+
+    document.getElementById('searchBtn').disabled = true;
     showLoading();
-    try{
-      const res=await fetch(`https://tiktok-scraper7.p.rapidapi.com/user/info?unique_id=${encodeURIComponent(username)}`,{
-        method:'GET',
-        headers:{'x-rapidapi-key':RAPIDAPI_KEY,'x-rapidapi-host':'tiktok-scraper7.p.rapidapi.com'}
-      });
-      const json=await res.json();
-      if(json.message==='Too many requests')throw new Error('rate_limit');
-      const u=json?.data?.user;
-      const s=json?.data?.stats;
-      if(!u)throw new Error('no_user');
-      showProfile({
-        username:  u.uniqueId,
-        nickname:  u.nickname,
-        bio:       u.signature,
-        verified:  u.verified,
-        avatarUrl: u.avatarMedium||u.avatarLarger,
-        // FIX 1: try multiple country fields the API might return
-        country:   u.region || u.country || u.location || null,
-        userId:    u.id,
-        secUid:    u.secUid,
-        private:   u.privateAccount,
-        followers: s?.followerCount,
-        following: s?.followingCount,
-        likes:     s?.heartCount,
-        // FIX 2: correct API field for video count
-        videos:    s?.videoCount ?? 0,
-        created:   u.createTime,
-      });
-      addRecent(u.uniqueId);renderRecent();
-    }catch(err){
+
+    try {
+      // Try RapidAPI-style TikTok scraper endpoints (public, no key required wrappers)
+      // We'll try a couple of known free-tier public proxy endpoints
+      const endpoints = [
+        `https://tiktok-scraper7.p.rapidapi.com/user/info?unique_id=${encodeURIComponent(username)}`,
+        `https://api22-normal-c-useast2a.tiktokv.com/aweme/v1/user/profile/other/?unique_id=${encodeURIComponent(username)}`
+      ];
+
+      // Primary: use a CORS-friendly public TikTok info API
+      const res = await fetch(
+        `https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(username)}`,
+        { headers: { 'Accept': 'application/json' } }
+      );
+
+      if(!res.ok) throw new Error('Network error: '+res.status);
+      const json = await res.json();
+
+      // tikwm response shape: { code: 0, data: { user: {...}, stats: {...} } }
+      if(json.code !== 0 && json.code !== 200 && json.code !== '0'){
+        throw new Error(json.msg || json.message || 'User not found');
+      }
+
+      const raw_data = json.data || {};
+      const user     = raw_data.user || raw_data;
+      const stats    = raw_data.stats || {};
+
+      const profile = {
+        id:             user.id        || user.uid       || '—',
+        username:       user.unique_id || user.uniqueId  || username,
+        nickname:       user.nickname  || '',
+        bio:            user.signature || user.bio       || '',
+        avatarUrl:      user.avatarThumb || user.avatar_thumb || user.avatar_medium || '',
+        verified:       user.verified  || false,
+        privateAccount: user.secret    || user.privateAccount || false,
+        region:         user.region    || user.country   || '',
+        followerCount:  stats.followerCount  || user.followerCount  || 0,
+        followingCount: stats.followingCount || user.followingCount || 0,
+        heartCount:     stats.heartCount     || user.heartCount     || stats.diggCount || 0,
+        videoCount:     stats.videoCount     || user.videoCount     || 0,
+        createTime:     user.createTime      || user.create_time    || null,
+      };
+
+      showProfile(profile);
+      addRecent(profile.username);
+      renderRecent();
+
+    } catch(err) {
       console.error(err);
-      if(err.message==='rate_limit')showStatus('Rate limited','Too many requests. Wait a moment and try again.');
-      else if(err.message==='no_user')showStatus('User not found',`@${username} doesn't seem to exist on TikTok.`);
-      else showStatus('Something went wrong','Could not fetch data. Check the username and try again.');
-    }finally{document.getElementById('searchBtn').disabled=false;}
+      showStatus('Not found', err.message && err.message.length < 80
+        ? err.message
+        : 'Could not fetch this user. They may not exist, or the lookup service is temporarily unavailable.');
+    } finally {
+      document.getElementById('searchBtn').disabled = false;
+    }
   }
 
-  document.getElementById('searchBtn').addEventListener('click',()=>doSearch(document.getElementById('searchInput').value));
-  document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(e.target.value);});
-  showStatus('Search a user','Enter a TikTok username above to look them up');
+  /* EVENT LISTENERS */
+  document.getElementById('searchBtn').addEventListener('click', () => doSearch());
+  document.getElementById('searchInput').addEventListener('keydown', e => {
+    if(e.key === 'Enter') doSearch();
+  });
+
+  /* SHOW INITIAL STATUS */
+  showStatus('Search a user', 'Enter a TikTok username above to look them up');
 </script>
 </body>
 </html>
