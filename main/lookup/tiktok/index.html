@@ -161,6 +161,22 @@
 
   .divider { height: 1px; background: #1a1a1a; }
 
+  /* TOKEN ROW */
+  .token-row { display: flex; align-items: center; gap: 10px; margin-top: -8px; }
+  .token-field {
+    flex: 1; background: #0d0d0d;
+    border: 1px solid #1a1a1a; border-radius: 100px;
+    padding: 9px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 11px; font-weight: 700; color: #888;
+    outline: none; transition: border-color 0.3s;
+    caret-color: #aaa;
+  }
+  .token-field::placeholder { color: #333; }
+  .token-field:focus { border-color: rgba(255,255,255,0.12); }
+  .token-hint { font-size: 9px; font-weight: 800; color: #2a2a2a; letter-spacing: 0.5px; white-space: nowrap; transition: color 0.3s; }
+  .token-hint.saved { color: #4a4a4a; }
+
   /* LOADING */
   .loading { display: none; align-items: center; justify-content: center; gap: 6px; padding: 24px 0; }
   .loading.visible { display: flex; }
@@ -258,6 +274,14 @@
             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
             aria-label="TikTok username or user ID">
           <button class="search-btn" id="searchBtn">Search</button>
+        </div>
+
+        <div class="token-row">
+          <input class="token-field" id="tikHubToken" type="password"
+            placeholder="Apify token (for country data)"
+            autocomplete="off" spellcheck="false"
+            aria-label="TikAPI key">
+          <span class="token-hint" id="tokenHint"></span>
         </div>
 
         <div class="divider"></div>
@@ -514,18 +538,55 @@
     };
   }
 
-  /* ── TIKHUB COUNTRY FETCH ── */
+  /* ── TIKHUB TOKEN ── */
+  const TOKEN_KEY = 'tiklook_tikhub_token';
+  const DEFAULT_TOKEN = 'apify_api_6HEwOdsqu6QlKfBcoRDYKXB6PeLf5m1lA6VP';
+  function getToken(){ return document.getElementById('tikHubToken').value.trim() || localStorage.getItem(TOKEN_KEY) || DEFAULT_TOKEN; }
+  function saveToken(t){ try{ localStorage.setItem(TOKEN_KEY, t); }catch{} }
+
+  // Restore saved token on load
+  (function(){
+    const saved = localStorage.getItem(TOKEN_KEY) || DEFAULT_TOKEN;
+    if(saved){ document.getElementById('tikHubToken').value = saved; setTokenHint(true); }
+  })();
+
+  document.getElementById('tikHubToken').addEventListener('input', function(){
+    const t = this.value.trim();
+    saveToken(t);
+    setTokenHint(!!t);
+  });
+
+  function setTokenHint(saved){
+    const el = document.getElementById('tokenHint');
+    el.textContent = saved ? 'token saved ✦' : '';
+    el.classList.toggle('saved', saved);
+  }
+
+  /* ── APIFY COUNTRY FETCH ── */
   async function fetchCountryFromTikHub(username){
+    const token = getToken();
+    if(!token) return null;
     try{
-      const r=await fetch(`https://api.tikhub.io/api/v1/tiktok/web/fetch_user_profile?unique_id=${encodeURIComponent(username)}`);
-      if(!r.ok)return null;
-      const j=await r.json();
-      // TikHub wraps data in j.data.data or j.data
-      const d=j?.data?.data||j?.data||j;
-      const user=d?.user||d;
-      const raw=user?.region||user?.country||user?.location||d?.region||d?.country||null;
+      const r = await fetch(
+        `https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profiles: [`https://www.tiktok.com/@${username}`],
+            resultsType: 'profiles',
+            maxProfilesPerQuery: 1
+          })
+        }
+      );
+      if(!r.ok) return null;
+      const items = await r.json();
+      // Returns an array; first item is the profile
+      const profile = Array.isArray(items) ? items[0] : items;
+      if(!profile) return null;
+      const raw = profile?.region || profile?.country || profile?.authorMeta?.region || null;
       return resolveCountry(raw);
-    }catch{return null;}
+    }catch{ return null; }
   }
 
   /* ── SEARCH ── */
