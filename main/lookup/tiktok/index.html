@@ -517,37 +517,62 @@
   const CORS_PROXIES = [
     u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
     u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
   ];
+
+  function extractCountryFromBlob(blob){
+    // Try every known path TikTok has used
+    const candidates = [
+      blob?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo?.user,
+      blob?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo,
+      blob?.['webapp.user-detail']?.userInfo?.user,
+      blob?.['webapp.user-detail']?.userInfo,
+      blob?.userInfo?.user,
+      blob?.userInfo,
+    ];
+    for(const c of candidates){
+      if(!c) continue;
+      const raw = c.region || c.country || c.location || c.locale || null;
+      const r = resolveCountry(raw);
+      if(r) return r;
+    }
+    // Last resort: JSON stringify and regex scan for "region":"XX"
+    try{
+      const str = JSON.stringify(blob);
+      const m = str.match(/"region"\s*:\s*"([A-Z]{2})"/);
+      if(m) return resolveCountry(m[1]);
+    }catch{}
+    return null;
+  }
 
   async function fetchCountryFromPage(username){
     const targetUrl = `https://www.tiktok.com/@${username}`;
     for(const proxyFn of CORS_PROXIES){
       try{
-        const r = await fetch(proxyFn(targetUrl), {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-        });
+        const r = await fetch(proxyFn(targetUrl));
         if(!r.ok) continue;
-        // allorigins wraps in { contents: "..." }, corsproxy returns raw text
-        const text = r.headers.get('content-type')?.includes('json')
+        const ct = r.headers.get('content-type') || '';
+        const text = ct.includes('json')
           ? (await r.json()).contents
           : await r.text();
-        if(!text) continue;
+        if(!text || text.length < 500) continue;
 
-        // Extract __UNIVERSAL_DATA_FOR_REHYDRATION__ JSON blob
+        // Try __UNIVERSAL_DATA_FOR_REHYDRATION__ script tag
         const match = text.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-        if(!match) continue;
+        if(match){
+          try{
+            const blob = JSON.parse(match[1]);
+            const found = extractCountryFromBlob(blob);
+            if(found) return found;
+          }catch{}
+        }
 
-        const blob = JSON.parse(match[1]);
-        // Navigate to user detail — path varies slightly
-        const detail =
-          blob?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo?.user ||
-          blob?.['webapp.user-detail']?.userInfo?.user ||
-          null;
-
-        if(!detail) continue;
-        const raw = detail.region || detail.country || detail.location || null;
-        const resolved = resolveCountry(raw);
-        if(resolved) return resolved;
+        // Fallback: scan raw HTML for "region":"XX" pattern
+        const regionMatch = text.match(/"region"\s*:\s*"([A-Z]{2})"/);
+        if(regionMatch){
+          const r2 = resolveCountry(regionMatch[1]);
+          if(r2) return r2;
+        }
       }catch{ continue; }
     }
     return null;
