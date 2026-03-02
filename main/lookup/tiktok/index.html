@@ -161,6 +161,22 @@
 
   .divider { height: 1px; background: #1a1a1a; }
 
+  /* TOKEN ROW */
+  .token-row { display: flex; align-items: center; gap: 10px; margin-top: -8px; }
+  .token-field {
+    flex: 1; background: #0d0d0d;
+    border: 1px solid #1a1a1a; border-radius: 100px;
+    padding: 9px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 11px; font-weight: 700; color: #888;
+    outline: none; transition: border-color 0.3s;
+    caret-color: #aaa;
+  }
+  .token-field::placeholder { color: #333; }
+  .token-field:focus { border-color: rgba(255,255,255,0.12); }
+  .token-hint { font-size: 9px; font-weight: 800; color: #2a2a2a; letter-spacing: 0.5px; white-space: nowrap; transition: color 0.3s; }
+  .token-hint.saved { color: #4a4a4a; }
+
   /* LOADING */
   .loading { display: none; align-items: center; justify-content: center; gap: 6px; padding: 24px 0; }
   .loading.visible { display: flex; }
@@ -260,6 +276,14 @@
           <button class="search-btn" id="searchBtn">Search</button>
         </div>
 
+        <div class="token-row">
+          <input class="token-field" id="tikHubToken" type="password"
+            placeholder="Apify token (for country data)"
+            autocomplete="off" spellcheck="false"
+            aria-label="TikAPI key">
+          <span class="token-hint" id="tokenHint"></span>
+        </div>
+
         <div class="divider"></div>
 
         <div class="loading" id="loadingEl" aria-live="polite">
@@ -313,6 +337,7 @@
     enterScreen.classList.add('hiding');
     mainWrap.classList.add('revealed');
     setTimeout(() => enterScreen.remove(), 1000);
+    renderRecent();
   }
   enterScreen.addEventListener('click', doEnter);
   enterScreen.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') doEnter(); });
@@ -402,99 +427,36 @@
     'IR':'Iran','JO':'Jordan','LB':'Lebanon','KW':'Kuwait','QA':'Qatar','BH':'Bahrain','OM':'Oman',
     'YE':'Yemen','AF':'Afghanistan','MN':'Mongolia',
   };
+  const NAME_TO_CODE={};
+  Object.entries(COUNTRY_NAMES).forEach(([c,n])=>{ NAME_TO_CODE[n.toLowerCase()]=c; });
 
+  // Tries to resolve a raw string → "🇺🇸 United States" or null
   function resolveCountry(raw){
     if(!raw||typeof raw!=='string')return null;
     const s=raw.trim();
-    // Reject empty, numeric-only, or obviously invalid values
-    if(!s||/^\d+$/.test(s)||s.toLowerCase()==='null'||s.toLowerCase()==='undefined'||s==='0')return null;
+    if(!s||s==='0'||s.toLowerCase()==='null'||s.toLowerCase()==='undefined')return null;
     const up=s.toUpperCase();
     if(FLAG_MAP[up]) return FLAG_MAP[up]+' '+(COUNTRY_NAMES[up]||up);
-    // Try matching full country name
-    const lower=s.toLowerCase();
-    for(const[code,name]of Object.entries(COUNTRY_NAMES)){
-      if(name.toLowerCase()===lower&&FLAG_MAP[code]) return FLAG_MAP[code]+' '+name;
-    }
-    // Only return raw if it looks like a real country string (not a single char or number)
-    if(s.length>1&&!/^\d/.test(s)) return s;
-    return null;
+    const byName=NAME_TO_CODE[s.toLowerCase()];
+    if(byName&&FLAG_MAP[byName]) return FLAG_MAP[byName]+' '+COUNTRY_NAMES[byName];
+    return s; // unknown but non-empty, show raw
   }
 
-  /**
-   * Extract country ONLY from the user object itself — not from API wrappers,
-   * headers, metadata, or any other part of the response.
-   * This prevents false positives like the API server's own country (DE).
-   */
-  function extractCountryFromUser(userObj) {
-    if(!userObj||typeof userObj!=='object') return null;
-    // Ordered list of fields TikTok uses for user region/country
-    const fields = ['region','country','location','countryCode','country_code','locale','territory'];
-    for(const f of fields){
-      if(userObj[f] && typeof userObj[f]==='string'){
-        const r = resolveCountry(userObj[f]);
-        if(r) return r;
+  // Deep-scan entire API response for any country/region key
+  const CKEYS=['region','country','location','locale','country_code','countryCode','region_code','regionCode','territory','geo'];
+  function deepFindCountry(obj,depth=0){
+    if(!obj||typeof obj!=='object'||depth>7)return null;
+    for(const k of CKEYS){
+      if(obj[k]&&typeof obj[k]==='string'){
+        const r=resolveCountry(obj[k]);
+        if(r)return r;
       }
     }
-    return null;
-  }
-
-  /* ── TIKTOK PAGE SCRAPE (country via __UNIVERSAL_DATA_FOR_REHYDRATION__) ── */
-  const CORS_PROXIES = [
-    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-    u => `https://thingproxy.freeboard.io/fetch/${u}`,
-  ];
-
-  function extractCountryFromPageBlob(blob){
-    // Navigate to the user object specifically — do NOT scan the whole blob
-    const candidates = [
-      blob?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo?.user,
-      blob?.['webapp.user-detail']?.userInfo?.user,
-      blob?.userInfo?.user,
-    ];
-    for(const userObj of candidates){
-      if(!userObj) continue;
-      const r = extractCountryFromUser(userObj);
-      if(r) return r;
-    }
-    return null;
-  }
-
-  async function fetchCountryFromPage(username){
-    const targetUrl = `https://www.tiktok.com/@${username}`;
-    for(const proxyFn of CORS_PROXIES){
-      try{
-        const r = await fetch(proxyFn(targetUrl));
-        if(!r.ok) continue;
-        const ct = r.headers.get('content-type') || '';
-        const text = ct.includes('json')
-          ? (await r.json()).contents
-          : await r.text();
-        if(!text || text.length < 500) continue;
-
-        const match = text.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-        if(match){
-          try{
-            const blob = JSON.parse(match[1]);
-            const found = extractCountryFromPageBlob(blob);
-            if(found) return found;
-          }catch{}
-        }
-
-        // Fallback: scan raw HTML but ONLY for the user object region field
-        // Look for "region":"XX" that appears near user-identifying fields
-        const regionMatch = text.match(/"uniqueId"\s*:[^,}]+,"region"\s*:\s*"([A-Z]{2})"/);
-        if(regionMatch){
-          const r2 = resolveCountry(regionMatch[1]);
-          if(r2) return r2;
-        }
-        // Second fallback pattern
-        const regionMatch2 = text.match(/"region"\s*:\s*"([A-Z]{2})"\s*,\s*"(?:privateAccount|secret|verified)"/);
-        if(regionMatch2){
-          const r3 = resolveCountry(regionMatch2[1]);
-          if(r3) return r3;
-        }
-      }catch{ continue; }
+    for(const v of Object.values(obj)){
+      if(v&&typeof v==='object'&&!Array.isArray(v)){
+        const r=deepFindCountry(v,depth+1);
+        if(r)return r;
+      }
     }
     return null;
   }
@@ -526,6 +488,7 @@
       ? '<span class="badge private">Private</span>'
       : '<span class="badge public">Public</span>';
 
+    // FIX: use deepFindCountry to scan the whole raw response
     document.getElementById('infoCountry').textContent = d.countryDisplay||'Not available';
 
     document.getElementById('infoFollowers').textContent = fmtNum(d.followerCount);
@@ -551,34 +514,78 @@
     if(code!==undefined&&code!==null&&code!==0&&code!==200&&code!=='0'&&code!=='200'){
       throw new Error(json.msg||json.message||json.status_msg||'User not found');
     }
-
     const d     = json.data       || json.userInfo || json;
-
-    // ── CRITICAL: isolate the raw user object BEFORE extracting country ──
-    // We must extract from the user node only, NOT the full response blob.
-    const rawUser  = d.user        || d.userInfo?.user || {};
-    const rawStats = d.stats       || d.userInfo?.stats || d.statisticsData || {};
-
-    // Extract country strictly from the user object
-    const countryDisplay = extractCountryFromUser(rawUser) || null;
+    const user  = d.user          || d.userInfo?.user || d;
+    const stats = d.stats         || d.userInfo?.stats || d.statisticsData || {};
 
     return {
-      id:             rawUser.id           || rawUser.uid           || '—',
-      username:       rawUser.unique_id    || rawUser.uniqueId      || rawUser.username || fallback || '—',
-      nickname:       rawUser.nickname     || rawUser.nick_name     || '',
-      bio:            rawUser.signature    || rawUser.bio           || '',
-      avatarUrl:      rawUser.avatarThumb  || rawUser.avatar_thumb  || rawUser.avatarMedium
-                    || rawUser.avatar_medium|| rawUser.avatarLarger || rawUser.avatar || '',
-      verified:       !!(rawUser.verified  || rawUser.verifiedType  || rawUser.verified_type),
-      privateAccount: !!(rawUser.secret    || rawUser.privateAccount|| rawUser.is_private),
-      followerCount:  rawStats.followerCount  ||rawStats.fans_count  ||rawUser.followerCount  ||rawUser.fans_count  ||0,
-      followingCount: rawStats.followingCount ||rawStats.follow_count ||rawUser.followingCount ||rawUser.follow_count ||0,
-      heartCount:     rawStats.heartCount     ||rawStats.heart_count  ||rawStats.diggCount
-                    ||rawUser.heartCount      ||rawUser.heart_count   ||rawUser.total_favorited||0,
-      videoCount:     rawStats.videoCount     ||rawStats.video_count  ||rawUser.videoCount     ||rawUser.video_count ||0,
-      createTime:     rawUser.createTime      ||rawUser.create_time   ||rawUser.createdAt      ||null,
-      countryDisplay,
+      id:             user.id           || user.uid           || '—',
+      username:       user.unique_id    || user.uniqueId      || user.username || fallback || '—',
+      nickname:       user.nickname     || user.nick_name     || '',
+      bio:            user.signature    || user.bio           || '',
+      avatarUrl:      user.avatarThumb  || user.avatar_thumb  || user.avatarMedium
+                    || user.avatar_medium|| user.avatarLarger || user.avatar || '',
+      verified:       !!(user.verified  || user.verifiedType  || user.verified_type),
+      privateAccount: !!(user.secret    || user.privateAccount|| user.is_private),
+      followerCount:  stats.followerCount  ||stats.fans_count  ||user.followerCount  ||user.fans_count  ||0,
+      followingCount: stats.followingCount ||stats.follow_count ||user.followingCount ||user.follow_count ||0,
+      heartCount:     stats.heartCount     ||stats.heart_count  ||stats.diggCount
+                    ||user.heartCount      ||user.heart_count   ||user.total_favorited||0,
+      videoCount:     stats.videoCount     ||stats.video_count  ||user.videoCount     ||user.video_count ||0,
+      createTime:     user.createTime      ||user.create_time   ||user.createdAt      ||null,
+      // Deep-scan entire JSON for country info
+      countryDisplay: deepFindCountry(json) || 'Not available',
     };
+  }
+
+  /* ── TIKHUB TOKEN ── */
+  const TOKEN_KEY = 'tiklook_tikhub_token';
+  function getToken(){ return document.getElementById('tikHubToken').value.trim() || localStorage.getItem(TOKEN_KEY) || ''; }
+  function saveToken(t){ try{ localStorage.setItem(TOKEN_KEY, t); }catch{} }
+
+  // Restore saved token on load
+  (function(){
+    const saved = localStorage.getItem(TOKEN_KEY);
+    if(saved){ document.getElementById('tikHubToken').value = saved; setTokenHint(true); }
+  })();
+
+  document.getElementById('tikHubToken').addEventListener('input', function(){
+    const t = this.value.trim();
+    saveToken(t);
+    setTokenHint(!!t);
+  });
+
+  function setTokenHint(saved){
+    const el = document.getElementById('tokenHint');
+    el.textContent = saved ? 'token saved ✦' : '';
+    el.classList.toggle('saved', saved);
+  }
+
+  /* ── APIFY COUNTRY FETCH ── */
+  async function fetchCountryFromTikHub(username){
+    const token = getToken();
+    if(!token) return null;
+    try{
+      const r = await fetch(
+        `https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profiles: [`https://www.tiktok.com/@${username}`],
+            resultsType: 'profiles',
+            maxProfilesPerQuery: 1
+          })
+        }
+      );
+      if(!r.ok) return null;
+      const items = await r.json();
+      // Returns an array; first item is the profile
+      const profile = Array.isArray(items) ? items[0] : items;
+      if(!profile) return null;
+      const raw = profile?.region || profile?.country || profile?.authorMeta?.region || null;
+      return resolveCountry(raw);
+    }catch{ return null; }
   }
 
   /* ── SEARCH ── */
@@ -593,6 +600,7 @@
       const isNumeric=/^\d{6,}$/.test(username);
       let json;
 
+      // Try unique_id first; if numeric and fails, retry as user_id
       try{
         json=await apiFetch(`unique_id=${encodeURIComponent(username)}`);
         const c=json.code??json.status_code;
@@ -609,14 +617,11 @@
 
       const profile=parseJson(json,username);
 
-      // Only scrape TikTok page for country if API gave us nothing
-      if(!profile.countryDisplay){
-        const scraped=await fetchCountryFromPage(profile.username!=='—'?profile.username:username);
-        if(scraped) profile.countryDisplay=scraped;
+      // If country not found in main API, try TikHub as fallback
+      if(!profile.countryDisplay||profile.countryDisplay==='Not available'){
+        const tikHubCountry=await fetchCountryFromTikHub(profile.username!=='—'?profile.username:username);
+        if(tikHubCountry) profile.countryDisplay=tikHubCountry;
       }
-
-      // Final fallback label
-      if(!profile.countryDisplay) profile.countryDisplay='Not available';
 
       showProfile(profile);
 
