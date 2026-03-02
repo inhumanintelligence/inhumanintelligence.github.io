@@ -228,14 +228,6 @@
   }
   .profile-link:hover { background: #1a1a1a; color: #fff; transform: translateY(-1px); }
 
-  /* RECENT */
-  .recent-section { display: none; width: 100%; }
-  .recent-section.visible { display: block; }
-  .recent-label { font-size: 9px; font-weight: 800; color: #444; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
-  .recent-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { background: #0d0d0d; border: 1px solid #1f1f1f; border-radius: 100px; padding: 5px 14px; font-size: 11px; font-weight: 700; color: #666; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
-  .chip:hover { border-color: #444; color: #ccc; }
-
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 </style>
 </head>
@@ -304,12 +296,6 @@
           <a class="profile-link" id="profileLink" href="#" target="_blank" rel="noopener">Open on TikTok</a>
         </div>
 
-        <div class="recent-section" id="recentSection">
-          <div class="divider" style="margin-bottom:14px"></div>
-          <div class="recent-label">Recent</div>
-          <div class="recent-chips" id="recentChips"></div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -354,17 +340,6 @@
   card.addEventListener('mouseenter',()=>{hovering=true;startTilt();});
   card.addEventListener('mousemove',e=>{const{rotX,rotY}=calcTilt(e.clientX,e.clientY,card.getBoundingClientRect());tX=rotX;tY=rotY;});
   card.addEventListener('mouseleave',()=>{hovering=false;tX=0;tY=0;startTilt();});
-
-  /* ── RECENT ── */
-  const RKEY='tiklook_recent';
-  const getRecent=()=>{try{return JSON.parse(localStorage.getItem(RKEY))||[];}catch{return[];}};
-  function addRecent(u){let r=getRecent().filter(x=>x!==u);r.unshift(u);r=r.slice(0,6);try{localStorage.setItem(RKEY,JSON.stringify(r));}catch{}}
-  function renderRecent(){
-    const r=getRecent(),section=document.getElementById('recentSection'),chips=document.getElementById('recentChips');
-    if(!r.length){section.classList.remove('visible');return;}
-    section.classList.add('visible');chips.innerHTML='';
-    r.forEach(u=>{const c=document.createElement('div');c.className='chip';c.textContent='@'+u;c.addEventListener('click',()=>{document.getElementById('searchInput').value=u;doSearch(u);});chips.appendChild(c);});
-  }
 
   /* ── UI HELPERS ── */
   function showLoading(){
@@ -539,6 +514,20 @@
     };
   }
 
+  /* ── TIKHUB COUNTRY FETCH ── */
+  async function fetchCountryFromTikHub(username){
+    try{
+      const r=await fetch(`https://api.tikhub.io/api/v1/tiktok/web/fetch_user_profile?unique_id=${encodeURIComponent(username)}`);
+      if(!r.ok)return null;
+      const j=await r.json();
+      // TikHub wraps data in j.data.data or j.data
+      const d=j?.data?.data||j?.data||j;
+      const user=d?.user||d;
+      const raw=user?.region||user?.country||user?.location||d?.region||d?.country||null;
+      return resolveCountry(raw);
+    }catch{return null;}
+  }
+
   /* ── SEARCH ── */
   async function doSearch(rawInput){
     const username=(rawInput||document.getElementById('searchInput').value).trim().replace(/^@+/,'');
@@ -567,9 +556,14 @@
       }
 
       const profile=parseJson(json,username);
+
+      // If country not found in main API, try TikHub as fallback
+      if(!profile.countryDisplay||profile.countryDisplay==='Not available'){
+        const tikHubCountry=await fetchCountryFromTikHub(profile.username!=='—'?profile.username:username);
+        if(tikHubCountry) profile.countryDisplay=tikHubCountry;
+      }
+
       showProfile(profile);
-      addRecent(profile.username!=='—'?profile.username:username);
-      renderRecent();
 
     }catch(err){
       console.error(err);
