@@ -262,9 +262,9 @@
 
         <div class="input-row">
           <input class="search-field" id="searchInput" type="text"
-            placeholder="@username or username"
+            placeholder="@username or user ID"
             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-            aria-label="TikTok username">
+            aria-label="TikTok username or user ID">
           <button class="search-btn" id="searchBtn">Search</button>
         </div>
 
@@ -276,7 +276,7 @@
 
         <div class="status-msg" id="statusMsg" aria-live="polite">
           <div class="msg-title" id="statusTitle">Search a user</div>
-          <div class="msg-sub"   id="statusSub">Enter a TikTok username above to look them up</div>
+          <div class="msg-sub"   id="statusSub">Enter a TikTok username or user ID above to look them up</div>
         </div>
 
         <div class="profile-card" id="profileCard" aria-live="polite">
@@ -317,7 +317,7 @@
 </div>
 
 <script>
-  /* ENTER */
+  /* ── ENTER ── */
   let entered = false;
   const enterScreen = document.getElementById('enter-screen');
   const mainWrap    = document.getElementById('main-wrap');
@@ -332,7 +332,7 @@
   enterScreen.addEventListener('click', doEnter);
   enterScreen.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') doEnter(); });
 
-  /* TILT */
+  /* ── TILT ── */
   const card = document.getElementById('card');
   const EDGE = 0.28, MAX_T = 5;
   let tX=0,tY=0,cX=0,cY=0,hovering=false,rafId=null;
@@ -355,7 +355,7 @@
   card.addEventListener('mousemove',e=>{const{rotX,rotY}=calcTilt(e.clientX,e.clientY,card.getBoundingClientRect());tX=rotX;tY=rotY;});
   card.addEventListener('mouseleave',()=>{hovering=false;tX=0;tY=0;startTilt();});
 
-  /* RECENT */
+  /* ── RECENT ── */
   const RKEY='tiklook_recent';
   const getRecent=()=>{try{return JSON.parse(localStorage.getItem(RKEY))||[];}catch{return[];}};
   function addRecent(u){let r=getRecent().filter(x=>x!==u);r.unshift(u);r=r.slice(0,6);try{localStorage.setItem(RKEY,JSON.stringify(r));}catch{}}
@@ -366,7 +366,7 @@
     r.forEach(u=>{const c=document.createElement('div');c.className='chip';c.textContent='@'+u;c.addEventListener('click',()=>{document.getElementById('searchInput').value=u;doSearch(u);});chips.appendChild(c);});
   }
 
-  /* UI HELPERS */
+  /* ── UI HELPERS ── */
   function showLoading(){
     document.getElementById('loadingEl').classList.add('visible');
     document.getElementById('statusMsg').classList.remove('visible');
@@ -394,182 +394,204 @@
     return d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
   }
 
-  /* ── COUNTRY HELPERS ── */
-  const FLAG_MAP = {
-    'US':'🇺🇸','GB':'🇬🇧','DE':'🇩🇪','FR':'🇫🇷','CA':'🇨🇦','AU':'🇦🇺',
-    'JP':'🇯🇵','KR':'🇰🇷','BR':'🇧🇷','MX':'🇲🇽','IN':'🇮🇳','IT':'🇮🇹',
-    'ES':'🇪🇸','NL':'🇳🇱','SE':'🇸🇪','NO':'🇳🇴','DK':'🇩🇰','FI':'🇫🇮',
-    'PL':'🇵🇱','RU':'🇷🇺','TR':'🇹🇷','SA':'🇸🇦','AE':'🇦🇪','SG':'🇸🇬',
-    'ID':'🇮🇩','PH':'🇵🇭','TH':'🇹🇭','VN':'🇻🇳','MY':'🇲🇾','PK':'🇵🇰',
-    'NG':'🇳🇬','ZA':'🇿🇦','EG':'🇪🇬','AR':'🇦🇷','CO':'🇨🇴','CL':'🇨🇱',
-    'PT':'🇵🇹','BE':'🇧🇪','AT':'🇦🇹','CH':'🇨🇭','NZ':'🇳🇿','IE':'🇮🇪',
-    'HU':'🇭🇺','CZ':'🇨🇿','RO':'🇷🇴','GR':'🇬🇷','IL':'🇮🇱','TW':'🇹🇼',
-    'HK':'🇭🇰','CN':'🇨🇳','UA':'🇺🇦','SK':'🇸🇰','HR':'🇭🇷','RS':'🇷🇸',
-    'LT':'🇱🇹','LV':'🇱🇻','EE':'🇪🇪','BG':'🇧🇬','SI':'🇸🇮','BY':'🇧🇾',
-    'KZ':'🇰🇿','UZ':'🇺🇿','GE':'🇬🇪','AM':'🇦🇲','AZ':'🇦🇿',
+  /* ── COUNTRY ── */
+  const FLAG_MAP={
+    'US':'🇺🇸','GB':'🇬🇧','DE':'🇩🇪','FR':'🇫🇷','CA':'🇨🇦','AU':'🇦🇺','JP':'🇯🇵','KR':'🇰🇷','BR':'🇧🇷',
+    'MX':'🇲🇽','IN':'🇮🇳','IT':'🇮🇹','ES':'🇪🇸','NL':'🇳🇱','SE':'🇸🇪','NO':'🇳🇴','DK':'🇩🇰','FI':'🇫🇮',
+    'PL':'🇵🇱','RU':'🇷🇺','TR':'🇹🇷','SA':'🇸🇦','AE':'🇦🇪','SG':'🇸🇬','ID':'🇮🇩','PH':'🇵🇭','TH':'🇹🇭',
+    'VN':'🇻🇳','MY':'🇲🇾','PK':'🇵🇰','NG':'🇳🇬','ZA':'🇿🇦','EG':'🇪🇬','AR':'🇦🇷','CO':'🇨🇴','CL':'🇨🇱',
+    'PT':'🇵🇹','BE':'🇧🇪','AT':'🇦🇹','CH':'🇨🇭','NZ':'🇳🇿','IE':'🇮🇪','HU':'🇭🇺','CZ':'🇨🇿','RO':'🇷🇴',
+    'GR':'🇬🇷','IL':'🇮🇱','TW':'🇹🇼','HK':'🇭🇰','CN':'🇨🇳','UA':'🇺🇦','SK':'🇸🇰','HR':'🇭🇷','RS':'🇷🇸',
+    'LT':'🇱🇹','LV':'🇱🇻','EE':'🇪🇪','BG':'🇧🇬','SI':'🇸🇮','BY':'🇧🇾','KZ':'🇰🇿','UZ':'🇺🇿','GE':'🇬🇪',
+    'AM':'🇦🇲','AZ':'🇦🇿','PY':'🇵🇾','UY':'🇺🇾','PE':'🇵🇪','VE':'🇻🇪','EC':'🇪🇨','BO':'🇧🇴','DO':'🇩🇴',
+    'CU':'🇨🇺','GT':'🇬🇹','HN':'🇭🇳','SV':'🇸🇻','NI':'🇳🇮','CR':'🇨🇷','PA':'🇵🇦','MA':'🇲🇦','DZ':'🇩🇿',
+    'TN':'🇹🇳','GH':'🇬🇭','KE':'🇰🇪','ET':'🇪🇹','TZ':'🇹🇿','UG':'🇺🇬','SN':'🇸🇳','CM':'🇨🇲','BD':'🇧🇩',
+    'LK':'🇱🇰','NP':'🇳🇵','MM':'🇲🇲','KH':'🇰🇭','IQ':'🇮🇶','IR':'🇮🇷','JO':'🇯🇴','LB':'🇱🇧','KW':'🇰🇼',
+    'QA':'🇶🇦','BH':'🇧🇭','OM':'🇴🇲','YE':'🇾🇪','AF':'🇦🇫','MN':'🇲🇳',
   };
-  const COUNTRY_NAMES = {
-    'US':'United States','GB':'United Kingdom','DE':'Germany','FR':'France',
-    'CA':'Canada','AU':'Australia','JP':'Japan','KR':'South Korea','BR':'Brazil',
-    'MX':'Mexico','IN':'India','IT':'Italy','ES':'Spain','NL':'Netherlands',
-    'SE':'Sweden','NO':'Norway','DK':'Denmark','FI':'Finland','PL':'Poland',
-    'RU':'Russia','TR':'Turkey','SA':'Saudi Arabia','AE':'UAE','SG':'Singapore',
-    'ID':'Indonesia','PH':'Philippines','TH':'Thailand','VN':'Vietnam',
-    'MY':'Malaysia','PK':'Pakistan','NG':'Nigeria','ZA':'South Africa',
-    'EG':'Egypt','AR':'Argentina','CO':'Colombia','CL':'Chile','PT':'Portugal',
-    'BE':'Belgium','AT':'Austria','CH':'Switzerland','NZ':'New Zealand',
-    'IE':'Ireland','HU':'Hungary','CZ':'Czech Republic','RO':'Romania',
-    'GR':'Greece','IL':'Israel','TW':'Taiwan','HK':'Hong Kong','CN':'China',
-    'UA':'Ukraine','SK':'Slovakia','HR':'Croatia','RS':'Serbia','LT':'Lithuania',
-    'LV':'Latvia','EE':'Estonia','BG':'Bulgaria','SI':'Slovenia','BY':'Belarus',
-    'KZ':'Kazakhstan','UZ':'Uzbekistan','GE':'Georgia','AM':'Armenia','AZ':'Azerbaijan',
+  const COUNTRY_NAMES={
+    'US':'United States','GB':'United Kingdom','DE':'Germany','FR':'France','CA':'Canada','AU':'Australia',
+    'JP':'Japan','KR':'South Korea','BR':'Brazil','MX':'Mexico','IN':'India','IT':'Italy','ES':'Spain',
+    'NL':'Netherlands','SE':'Sweden','NO':'Norway','DK':'Denmark','FI':'Finland','PL':'Poland','RU':'Russia',
+    'TR':'Turkey','SA':'Saudi Arabia','AE':'UAE','SG':'Singapore','ID':'Indonesia','PH':'Philippines',
+    'TH':'Thailand','VN':'Vietnam','MY':'Malaysia','PK':'Pakistan','NG':'Nigeria','ZA':'South Africa',
+    'EG':'Egypt','AR':'Argentina','CO':'Colombia','CL':'Chile','PT':'Portugal','BE':'Belgium','AT':'Austria',
+    'CH':'Switzerland','NZ':'New Zealand','IE':'Ireland','HU':'Hungary','CZ':'Czech Republic','RO':'Romania',
+    'GR':'Greece','IL':'Israel','TW':'Taiwan','HK':'Hong Kong','CN':'China','UA':'Ukraine','SK':'Slovakia',
+    'HR':'Croatia','RS':'Serbia','LT':'Lithuania','LV':'Latvia','EE':'Estonia','BG':'Bulgaria','SI':'Slovenia',
+    'BY':'Belarus','KZ':'Kazakhstan','UZ':'Uzbekistan','GE':'Georgia','AM':'Armenia','AZ':'Azerbaijan',
+    'PY':'Paraguay','UY':'Uruguay','PE':'Peru','VE':'Venezuela','EC':'Ecuador','BO':'Bolivia',
+    'DO':'Dominican Republic','CU':'Cuba','GT':'Guatemala','HN':'Honduras','SV':'El Salvador',
+    'NI':'Nicaragua','CR':'Costa Rica','PA':'Panama','MA':'Morocco','DZ':'Algeria','TN':'Tunisia',
+    'GH':'Ghana','KE':'Kenya','ET':'Ethiopia','TZ':'Tanzania','UG':'Uganda','SN':'Senegal','CM':'Cameroon',
+    'BD':'Bangladesh','LK':'Sri Lanka','NP':'Nepal','MM':'Myanmar','KH':'Cambodia','IQ':'Iraq',
+    'IR':'Iran','JO':'Jordan','LB':'Lebanon','KW':'Kuwait','QA':'Qatar','BH':'Bahrain','OM':'Oman',
+    'YE':'Yemen','AF':'Afghanistan','MN':'Mongolia',
   };
+  const NAME_TO_CODE={};
+  Object.entries(COUNTRY_NAMES).forEach(([c,n])=>{ NAME_TO_CODE[n.toLowerCase()]=c; });
 
-  // Reverse map: full name → code (for when API returns a full name)
-  const NAME_TO_CODE = {};
-  Object.entries(COUNTRY_NAMES).forEach(([code, name]) => {
-    NAME_TO_CODE[name.toLowerCase()] = code;
-  });
-
-  function resolveCountry(raw) {
-    if (!raw || typeof raw !== 'string') return 'Unknown';
-    const trimmed = raw.trim();
-    if (!trimmed) return 'Unknown';
-
-    // Try as 2-letter ISO code (case-insensitive)
-    const code = trimmed.toUpperCase();
-    if (FLAG_MAP[code]) {
-      return FLAG_MAP[code] + ' ' + (COUNTRY_NAMES[code] || code);
-    }
-
-    // Try reverse lookup (full country name → code)
-    const lookedUp = NAME_TO_CODE[trimmed.toLowerCase()];
-    if (lookedUp && FLAG_MAP[lookedUp]) {
-      return FLAG_MAP[lookedUp] + ' ' + COUNTRY_NAMES[lookedUp];
-    }
-
-    // Unknown but non-empty value — show as-is
-    return trimmed;
+  // Tries to resolve a raw string → "🇺🇸 United States" or null
+  function resolveCountry(raw){
+    if(!raw||typeof raw!=='string')return null;
+    const s=raw.trim();
+    if(!s||s==='0'||s.toLowerCase()==='null'||s.toLowerCase()==='undefined')return null;
+    const up=s.toUpperCase();
+    if(FLAG_MAP[up]) return FLAG_MAP[up]+' '+(COUNTRY_NAMES[up]||up);
+    const byName=NAME_TO_CODE[s.toLowerCase()];
+    if(byName&&FLAG_MAP[byName]) return FLAG_MAP[byName]+' '+COUNTRY_NAMES[byName];
+    return s; // unknown but non-empty, show raw
   }
 
+  // Deep-scan entire API response for any country/region key
+  const CKEYS=['region','country','location','locale','country_code','countryCode','region_code','regionCode','territory','geo'];
+  function deepFindCountry(obj,depth=0){
+    if(!obj||typeof obj!=='object'||depth>7)return null;
+    for(const k of CKEYS){
+      if(obj[k]&&typeof obj[k]==='string'){
+        const r=resolveCountry(obj[k]);
+        if(r)return r;
+      }
+    }
+    for(const v of Object.values(obj)){
+      if(v&&typeof v==='object'&&!Array.isArray(v)){
+        const r=deepFindCountry(v,depth+1);
+        if(r)return r;
+      }
+    }
+    return null;
+  }
+
+  /* ── RENDER PROFILE ── */
   function showProfile(d){
     document.getElementById('loadingEl').classList.remove('visible');
     document.getElementById('statusMsg').classList.remove('visible');
     document.getElementById('profileCard').classList.add('visible');
 
-    document.getElementById('profileNick').textContent   = d.nickname || d.username || '—';
+    document.getElementById('profileNick').textContent   = d.nickname||d.username||'—';
     document.getElementById('profileHandle').textContent = '@'+(d.username||'—');
     document.getElementById('profileLink').href          = `https://www.tiktok.com/@${d.username}`;
 
-    const img = document.getElementById('profileAvatar');
-    if(d.avatarUrl){
-      img.src = d.avatarUrl;
-      img.style.display = 'block';
-      img.onerror = ()=>{ img.style.display='none'; };
-    } else {
-      img.style.display = 'none';
-    }
+    const img=document.getElementById('profileAvatar');
+    if(d.avatarUrl){ img.src=d.avatarUrl; img.style.display='block'; img.onerror=()=>{img.style.display='none';}; }
+    else{ img.style.display='none'; }
 
-    const verifiedEl = document.getElementById('profileVerified');
-    verifiedEl.style.display = d.verified ? 'inline-flex' : 'none';
+    document.getElementById('profileVerified').style.display = d.verified?'inline-flex':'none';
 
-    const bioEl = document.getElementById('profileBio');
-    if(d.bio && d.bio.trim()){
-      bioEl.textContent = d.bio;
-      bioEl.style.display = 'block';
-    } else {
-      bioEl.style.display = 'none';
-    }
+    const bioEl=document.getElementById('profileBio');
+    if(d.bio&&d.bio.trim()){ bioEl.textContent=d.bio; bioEl.style.display='block'; }
+    else{ bioEl.style.display='none'; }
 
-    document.getElementById('infoUserId').textContent = d.id || '—';
+    document.getElementById('infoUserId').textContent = d.id||'—';
 
-    const accountTypeEl = document.getElementById('infoAccountType');
-    const isPrivate = d.privateAccount === true || d.privateAccount === 'true' || d.privateAccount === 1;
-    accountTypeEl.innerHTML = isPrivate
+    const isPrivate = d.privateAccount===true||d.privateAccount==='true'||d.privateAccount===1;
+    document.getElementById('infoAccountType').innerHTML = isPrivate
       ? '<span class="badge private">Private</span>'
       : '<span class="badge public">Public</span>';
 
-    // FIX: Read region directly from the profile object (country/location/locale are not set)
-    const regionRaw = (d.region && typeof d.region === 'string') ? d.region.trim() : '';
-    document.getElementById('infoCountry').textContent = resolveCountry(regionRaw);
+    // FIX: use deepFindCountry to scan the whole raw response
+    document.getElementById('infoCountry').textContent = d.countryDisplay||'Not available';
 
     document.getElementById('infoFollowers').textContent = fmtNum(d.followerCount);
     document.getElementById('infoFollowing').textContent = fmtNum(d.followingCount);
-    document.getElementById('infoLikes').textContent     = fmtNum(d.heartCount || d.likeCount);
+    document.getElementById('infoLikes').textContent     = fmtNum(d.heartCount||d.likeCount);
     document.getElementById('infoVideos').textContent    = fmtNum(d.videoCount);
     document.getElementById('infoCreated').textContent   = fmtDate(d.createTime);
   }
 
-  /* SEARCH */
-  async function doSearch(rawInput){
-    let username = (rawInput || document.getElementById('searchInput').value).trim().replace(/^@+/,'');
-    if(!username){ showStatus('No username','Please enter a TikTok username to search.'); return; }
+  /* ── API ── */
+  const API_KEY  = 'bcad11b9fcmsh195b9d5606e7d6fp1eeed9jsn23b64ec685be';
+  const API_HOST = 'tiktok-scraper7.p.rapidapi.com';
+  const HEADERS  = {'x-rapidapi-key':API_KEY,'x-rapidapi-host':API_HOST,'Accept':'application/json'};
 
-    document.getElementById('searchBtn').disabled = true;
+  async function apiFetch(params){
+    const r = await fetch(`https://${API_HOST}/user/info?${params}`,{headers:HEADERS});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+
+  function parseJson(json, fallback){
+    const code = json.code ?? json.status_code ?? json.statusCode;
+    if(code!==undefined&&code!==null&&code!==0&&code!==200&&code!=='0'&&code!=='200'){
+      throw new Error(json.msg||json.message||json.status_msg||'User not found');
+    }
+    const d     = json.data       || json.userInfo || json;
+    const user  = d.user          || d.userInfo?.user || d;
+    const stats = d.stats         || d.userInfo?.stats || d.statisticsData || {};
+
+    return {
+      id:             user.id           || user.uid           || '—',
+      username:       user.unique_id    || user.uniqueId      || user.username || fallback || '—',
+      nickname:       user.nickname     || user.nick_name     || '',
+      bio:            user.signature    || user.bio           || '',
+      avatarUrl:      user.avatarThumb  || user.avatar_thumb  || user.avatarMedium
+                    || user.avatar_medium|| user.avatarLarger || user.avatar || '',
+      verified:       !!(user.verified  || user.verifiedType  || user.verified_type),
+      privateAccount: !!(user.secret    || user.privateAccount|| user.is_private),
+      followerCount:  stats.followerCount  ||stats.fans_count  ||user.followerCount  ||user.fans_count  ||0,
+      followingCount: stats.followingCount ||stats.follow_count ||user.followingCount ||user.follow_count ||0,
+      heartCount:     stats.heartCount     ||stats.heart_count  ||stats.diggCount
+                    ||user.heartCount      ||user.heart_count   ||user.total_favorited||0,
+      videoCount:     stats.videoCount     ||stats.video_count  ||user.videoCount     ||user.video_count ||0,
+      createTime:     user.createTime      ||user.create_time   ||user.createdAt      ||null,
+      // Deep-scan entire JSON for country info
+      countryDisplay: deepFindCountry(json) || 'Not available',
+    };
+  }
+
+  /* ── SEARCH ── */
+  async function doSearch(rawInput){
+    const username=(rawInput||document.getElementById('searchInput').value).trim().replace(/^@+/,'');
+    if(!username){showStatus('No username','Please enter a TikTok username or user ID to search.');return;}
+
+    document.getElementById('searchBtn').disabled=true;
     showLoading();
 
-    try {
-      const res = await fetch(
-        `https://tiktok-scraper7.p.rapidapi.com/user/info?unique_id=${encodeURIComponent(username)}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'x-rapidapi-key': 'bcad11b9fcmsh195b9d5606e7d6fp1eeed9jsn23b64ec685be',
-            'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com',
-          }
+    try{
+      const isNumeric=/^\d{6,}$/.test(username);
+      let json;
+
+      // Try unique_id first; if numeric and fails, retry as user_id
+      try{
+        json=await apiFetch(`unique_id=${encodeURIComponent(username)}`);
+        const c=json.code??json.status_code;
+        if(isNumeric&&c!==0&&c!==200&&c!=='0'){
+          throw new Error('retry_as_uid');
         }
-      );
-
-      if(!res.ok) throw new Error('Network error: '+res.status);
-      const json = await res.json();
-
-      if(json.code !== 0 && json.code !== 200 && json.code !== '0'){
-        throw new Error(json.msg || json.message || 'User not found');
+      }catch(e){
+        if(isNumeric){
+          json=await apiFetch(`user_id=${encodeURIComponent(username)}`);
+        }else{
+          throw e;
+        }
       }
 
-      const d = json.data || {};
-      const user  = d.user  || d;
-      const stats = d.stats || {};
-
-      const profile = {
-        id:             user.id          || user.uid            || '—',
-        username:       user.unique_id   || user.uniqueId       || username,
-        nickname:       user.nickname    || '',
-        bio:            user.signature   || user.bio            || '',
-        avatarUrl:      user.avatarThumb || user.avatar_thumb   || user.avatarMedium || user.avatar || '',
-        verified:       user.verified    || false,
-        privateAccount: user.secret      || user.privateAccount || false,
-        // FIX: capture all possible region/country fields from the API into `region`
-        region:         user.region      || user.country        || user.location     || user.locale || d.region || '',
-        followerCount:  stats.followerCount  || user.followerCount  || 0,
-        followingCount: stats.followingCount || user.followingCount || 0,
-        heartCount:     stats.heartCount     || user.heartCount     || stats.heart || user.heart || 0,
-        videoCount:     stats.videoCount     || user.videoCount     || 0,
-        createTime:     user.createTime      || user.create_time    || null,
-      };
-
+      const profile=parseJson(json,username);
       showProfile(profile);
-      addRecent(profile.username);
+      addRecent(profile.username!=='—'?profile.username:username);
       renderRecent();
 
-    } catch(err) {
+    }catch(err){
       console.error(err);
-      showStatus('Not found', err.message && err.message.length < 80
-        ? err.message
-        : 'Could not fetch this user. They may not exist, or the lookup service is temporarily unavailable.');
-    } finally {
-      document.getElementById('searchBtn').disabled = false;
+      const msg=(err.message||'').toLowerCase();
+      if(msg.includes('not found')||msg.includes('404')||msg.includes('does not exist')){
+        showStatus('Not found',`"@${username}" doesn't exist or may have been removed.`);
+      }else if(msg.includes('429')||msg.includes('rate')||msg.includes('quota')){
+        showStatus('Rate limited','Too many requests. Wait a moment and try again.');
+      }else if(msg.includes('http 4')){
+        showStatus('Lookup failed','The API returned an error. The user may not exist or the service is unavailable.');
+      }else{
+        showStatus('Connection error','Could not reach the lookup service. Check your connection and try again.');
+      }
+    }finally{
+      document.getElementById('searchBtn').disabled=false;
     }
   }
 
-  /* EVENT LISTENERS */
-  document.getElementById('searchBtn').addEventListener('click', () => doSearch());
-  document.getElementById('searchInput').addEventListener('keydown', e => {
-    if(e.key === 'Enter') doSearch();
-  });
+  document.getElementById('searchBtn').addEventListener('click',()=>doSearch());
+  document.getElementById('searchInput').addEventListener('keydown',e=>{ if(e.key==='Enter')doSearch(); });
 
-  /* SHOW INITIAL STATUS */
-  showStatus('Search a user', 'Enter a TikTok username above to look them up');
+  showStatus('Search a user','Enter a TikTok username or user ID above to look them up');
 </script>
 </body>
 </html>
