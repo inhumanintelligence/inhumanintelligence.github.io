@@ -489,11 +489,8 @@
       ? '<span class="badge private">Private</span>'
       : '<span class="badge public">Public</span>';
 
-    // Gather every possible region/country field and pick the first non-empty one
-    const regionRaw = [d.region, d.country, d.location, d.locale]
-      .map(v => (v && typeof v === 'string') ? v.trim() : '')
-      .find(v => v.length > 0) || '';
-
+    // FIX: Read region directly from the profile object (country/location/locale are not set)
+    const regionRaw = (d.region && typeof d.region === 'string') ? d.region.trim() : '';
     document.getElementById('infoCountry').textContent = resolveCountry(regionRaw);
 
     document.getElementById('infoFollowers').textContent = fmtNum(d.followerCount);
@@ -533,7 +530,6 @@
       const d = json.data || {};
       const user  = d.user  || d;
       const stats = d.stats || {};
-      alert(JSON.stringify(json).slice(0,1000));
 
       const profile = {
         id:             user.id          || user.uid            || '—',
@@ -543,7 +539,8 @@
         avatarUrl:      user.avatarThumb || user.avatar_thumb   || user.avatarMedium || user.avatar || '',
         verified:       user.verified    || false,
         privateAccount: user.secret      || user.privateAccount || false,
-        region:         user.region      || user.country        || d.region || '',
+        // FIX: capture all possible region/country fields from the API into `region`
+        region:         user.region      || user.country        || user.location     || user.locale || d.region || '',
         followerCount:  stats.followerCount  || user.followerCount  || 0,
         followingCount: stats.followingCount || user.followingCount || 0,
         heartCount:     stats.heartCount     || user.heartCount     || stats.heart || user.heart || 0,
