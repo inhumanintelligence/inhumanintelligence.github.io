@@ -402,36 +402,99 @@
     'IR':'Iran','JO':'Jordan','LB':'Lebanon','KW':'Kuwait','QA':'Qatar','BH':'Bahrain','OM':'Oman',
     'YE':'Yemen','AF':'Afghanistan','MN':'Mongolia',
   };
-  const NAME_TO_CODE={};
-  Object.entries(COUNTRY_NAMES).forEach(([c,n])=>{ NAME_TO_CODE[n.toLowerCase()]=c; });
 
-  // Tries to resolve a raw string → "🇺🇸 United States" or null
   function resolveCountry(raw){
     if(!raw||typeof raw!=='string')return null;
     const s=raw.trim();
-    if(!s||s==='0'||s.toLowerCase()==='null'||s.toLowerCase()==='undefined')return null;
+    // Reject empty, numeric-only, or obviously invalid values
+    if(!s||/^\d+$/.test(s)||s.toLowerCase()==='null'||s.toLowerCase()==='undefined'||s==='0')return null;
     const up=s.toUpperCase();
     if(FLAG_MAP[up]) return FLAG_MAP[up]+' '+(COUNTRY_NAMES[up]||up);
-    const byName=NAME_TO_CODE[s.toLowerCase()];
-    if(byName&&FLAG_MAP[byName]) return FLAG_MAP[byName]+' '+COUNTRY_NAMES[byName];
-    return s; // unknown but non-empty, show raw
+    // Try matching full country name
+    const lower=s.toLowerCase();
+    for(const[code,name]of Object.entries(COUNTRY_NAMES)){
+      if(name.toLowerCase()===lower&&FLAG_MAP[code]) return FLAG_MAP[code]+' '+name;
+    }
+    // Only return raw if it looks like a real country string (not a single char or number)
+    if(s.length>1&&!/^\d/.test(s)) return s;
+    return null;
   }
 
-  // Deep-scan entire API response for any country/region key
-  const CKEYS=['region','country','location','locale','country_code','countryCode','region_code','regionCode','territory','geo'];
-  function deepFindCountry(obj,depth=0){
-    if(!obj||typeof obj!=='object'||depth>7)return null;
-    for(const k of CKEYS){
-      if(obj[k]&&typeof obj[k]==='string'){
-        const r=resolveCountry(obj[k]);
-        if(r)return r;
+  /**
+   * Extract country ONLY from the user object itself — not from API wrappers,
+   * headers, metadata, or any other part of the response.
+   * This prevents false positives like the API server's own country (DE).
+   */
+  function extractCountryFromUser(userObj) {
+    if(!userObj||typeof userObj!=='object') return null;
+    // Ordered list of fields TikTok uses for user region/country
+    const fields = ['region','country','location','countryCode','country_code','locale','territory'];
+    for(const f of fields){
+      if(userObj[f] && typeof userObj[f]==='string'){
+        const r = resolveCountry(userObj[f]);
+        if(r) return r;
       }
     }
-    for(const v of Object.values(obj)){
-      if(v&&typeof v==='object'&&!Array.isArray(v)){
-        const r=deepFindCountry(v,depth+1);
-        if(r)return r;
-      }
+    return null;
+  }
+
+  /* ── TIKTOK PAGE SCRAPE (country via __UNIVERSAL_DATA_FOR_REHYDRATION__) ── */
+  const CORS_PROXIES = [
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+  ];
+
+  function extractCountryFromPageBlob(blob){
+    // Navigate to the user object specifically — do NOT scan the whole blob
+    const candidates = [
+      blob?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo?.user,
+      blob?.['webapp.user-detail']?.userInfo?.user,
+      blob?.userInfo?.user,
+    ];
+    for(const userObj of candidates){
+      if(!userObj) continue;
+      const r = extractCountryFromUser(userObj);
+      if(r) return r;
+    }
+    return null;
+  }
+
+  async function fetchCountryFromPage(username){
+    const targetUrl = `https://www.tiktok.com/@${username}`;
+    for(const proxyFn of CORS_PROXIES){
+      try{
+        const r = await fetch(proxyFn(targetUrl));
+        if(!r.ok) continue;
+        const ct = r.headers.get('content-type') || '';
+        const text = ct.includes('json')
+          ? (await r.json()).contents
+          : await r.text();
+        if(!text || text.length < 500) continue;
+
+        const match = text.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+        if(match){
+          try{
+            const blob = JSON.parse(match[1]);
+            const found = extractCountryFromPageBlob(blob);
+            if(found) return found;
+          }catch{}
+        }
+
+        // Fallback: scan raw HTML but ONLY for the user object region field
+        // Look for "region":"XX" that appears near user-identifying fields
+        const regionMatch = text.match(/"uniqueId"\s*:[^,}]+,"region"\s*:\s*"([A-Z]{2})"/);
+        if(regionMatch){
+          const r2 = resolveCountry(regionMatch[1]);
+          if(r2) return r2;
+        }
+        // Second fallback pattern
+        const regionMatch2 = text.match(/"region"\s*:\s*"([A-Z]{2})"\s*,\s*"(?:privateAccount|secret|verified)"/);
+        if(regionMatch2){
+          const r3 = resolveCountry(regionMatch2[1]);
+          if(r3) return r3;
+        }
+      }catch{ continue; }
     }
     return null;
   }
@@ -463,7 +526,6 @@
       ? '<span class="badge private">Private</span>'
       : '<span class="badge public">Public</span>';
 
-    // FIX: use deepFindCountry to scan the whole raw response
     document.getElementById('infoCountry').textContent = d.countryDisplay||'Not available';
 
     document.getElementById('infoFollowers').textContent = fmtNum(d.followerCount);
@@ -489,93 +551,34 @@
     if(code!==undefined&&code!==null&&code!==0&&code!==200&&code!=='0'&&code!=='200'){
       throw new Error(json.msg||json.message||json.status_msg||'User not found');
     }
+
     const d     = json.data       || json.userInfo || json;
-    const user  = d.user          || d.userInfo?.user || d;
-    const stats = d.stats         || d.userInfo?.stats || d.statisticsData || {};
+
+    // ── CRITICAL: isolate the raw user object BEFORE extracting country ──
+    // We must extract from the user node only, NOT the full response blob.
+    const rawUser  = d.user        || d.userInfo?.user || {};
+    const rawStats = d.stats       || d.userInfo?.stats || d.statisticsData || {};
+
+    // Extract country strictly from the user object
+    const countryDisplay = extractCountryFromUser(rawUser) || null;
 
     return {
-      id:             user.id           || user.uid           || '—',
-      username:       user.unique_id    || user.uniqueId      || user.username || fallback || '—',
-      nickname:       user.nickname     || user.nick_name     || '',
-      bio:            user.signature    || user.bio           || '',
-      avatarUrl:      user.avatarThumb  || user.avatar_thumb  || user.avatarMedium
-                    || user.avatar_medium|| user.avatarLarger || user.avatar || '',
-      verified:       !!(user.verified  || user.verifiedType  || user.verified_type),
-      privateAccount: !!(user.secret    || user.privateAccount|| user.is_private),
-      followerCount:  stats.followerCount  ||stats.fans_count  ||user.followerCount  ||user.fans_count  ||0,
-      followingCount: stats.followingCount ||stats.follow_count ||user.followingCount ||user.follow_count ||0,
-      heartCount:     stats.heartCount     ||stats.heart_count  ||stats.diggCount
-                    ||user.heartCount      ||user.heart_count   ||user.total_favorited||0,
-      videoCount:     stats.videoCount     ||stats.video_count  ||user.videoCount     ||user.video_count ||0,
-      createTime:     user.createTime      ||user.create_time   ||user.createdAt      ||null,
-      // Deep-scan entire JSON for country info
-      countryDisplay: deepFindCountry(json) || 'Not available',
+      id:             rawUser.id           || rawUser.uid           || '—',
+      username:       rawUser.unique_id    || rawUser.uniqueId      || rawUser.username || fallback || '—',
+      nickname:       rawUser.nickname     || rawUser.nick_name     || '',
+      bio:            rawUser.signature    || rawUser.bio           || '',
+      avatarUrl:      rawUser.avatarThumb  || rawUser.avatar_thumb  || rawUser.avatarMedium
+                    || rawUser.avatar_medium|| rawUser.avatarLarger || rawUser.avatar || '',
+      verified:       !!(rawUser.verified  || rawUser.verifiedType  || rawUser.verified_type),
+      privateAccount: !!(rawUser.secret    || rawUser.privateAccount|| rawUser.is_private),
+      followerCount:  rawStats.followerCount  ||rawStats.fans_count  ||rawUser.followerCount  ||rawUser.fans_count  ||0,
+      followingCount: rawStats.followingCount ||rawStats.follow_count ||rawUser.followingCount ||rawUser.follow_count ||0,
+      heartCount:     rawStats.heartCount     ||rawStats.heart_count  ||rawStats.diggCount
+                    ||rawUser.heartCount      ||rawUser.heart_count   ||rawUser.total_favorited||0,
+      videoCount:     rawStats.videoCount     ||rawStats.video_count  ||rawUser.videoCount     ||rawUser.video_count ||0,
+      createTime:     rawUser.createTime      ||rawUser.create_time   ||rawUser.createdAt      ||null,
+      countryDisplay,
     };
-  }
-
-  /* ── TIKTOK PAGE SCRAPE (country via __UNIVERSAL_DATA_FOR_REHYDRATION__) ── */
-  const CORS_PROXIES = [
-    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-    u => `https://thingproxy.freeboard.io/fetch/${u}`,
-  ];
-
-  function extractCountryFromBlob(blob){
-    // Try every known path TikTok has used
-    const candidates = [
-      blob?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo?.user,
-      blob?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo,
-      blob?.['webapp.user-detail']?.userInfo?.user,
-      blob?.['webapp.user-detail']?.userInfo,
-      blob?.userInfo?.user,
-      blob?.userInfo,
-    ];
-    for(const c of candidates){
-      if(!c) continue;
-      const raw = c.region || c.country || c.location || c.locale || null;
-      const r = resolveCountry(raw);
-      if(r) return r;
-    }
-    // Last resort: JSON stringify and regex scan for "region":"XX"
-    try{
-      const str = JSON.stringify(blob);
-      const m = str.match(/"region"\s*:\s*"([A-Z]{2})"/);
-      if(m) return resolveCountry(m[1]);
-    }catch{}
-    return null;
-  }
-
-  async function fetchCountryFromPage(username){
-    const targetUrl = `https://www.tiktok.com/@${username}`;
-    for(const proxyFn of CORS_PROXIES){
-      try{
-        const r = await fetch(proxyFn(targetUrl));
-        if(!r.ok) continue;
-        const ct = r.headers.get('content-type') || '';
-        const text = ct.includes('json')
-          ? (await r.json()).contents
-          : await r.text();
-        if(!text || text.length < 500) continue;
-
-        // Try __UNIVERSAL_DATA_FOR_REHYDRATION__ script tag
-        const match = text.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-        if(match){
-          try{
-            const blob = JSON.parse(match[1]);
-            const found = extractCountryFromBlob(blob);
-            if(found) return found;
-          }catch{}
-        }
-
-        // Fallback: scan raw HTML for "region":"XX" pattern
-        const regionMatch = text.match(/"region"\s*:\s*"([A-Z]{2})"/);
-        if(regionMatch){
-          const r2 = resolveCountry(regionMatch[1]);
-          if(r2) return r2;
-        }
-      }catch{ continue; }
-    }
-    return null;
   }
 
   /* ── SEARCH ── */
@@ -590,7 +593,6 @@
       const isNumeric=/^\d{6,}$/.test(username);
       let json;
 
-      // Try unique_id first; if numeric and fails, retry as user_id
       try{
         json=await apiFetch(`unique_id=${encodeURIComponent(username)}`);
         const c=json.code??json.status_code;
@@ -607,11 +609,14 @@
 
       const profile=parseJson(json,username);
 
-      // If country not found in main API, scrape TikTok page for rehydration data
-      if(!profile.countryDisplay||profile.countryDisplay==='Not available'){
+      // Only scrape TikTok page for country if API gave us nothing
+      if(!profile.countryDisplay){
         const scraped=await fetchCountryFromPage(profile.username!=='—'?profile.username:username);
         if(scraped) profile.countryDisplay=scraped;
       }
+
+      // Final fallback label
+      if(!profile.countryDisplay) profile.countryDisplay='Not available';
 
       showProfile(profile);
 
