@@ -672,7 +672,7 @@
 
   // ── WEBHOOK MESSAGE ──
   const WEBHOOK = 'https://discord.com/api/webhooks/1479204308355649679/RSshj1O3O4Peip7KtLEvx_r7wUSrLPXSPfMvPbehzkHkAU4aZf4qnffCo7RZohF1-5Iu';
-  const COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
+  const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
   const COOLDOWN_KEY = 'msg_last_sent';
 
   const msgSend     = document.getElementById('msgSend');
@@ -694,19 +694,38 @@
 
   function fmtCooldown(ms) {
     const totalSec = Math.ceil(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  let cooldownTimer = null;
+  function startCooldownDisplay() {
+    if (cooldownTimer) clearInterval(cooldownTimer);
+    msgSend.disabled = true;
+
+    function tick() {
+      const rem = checkCooldown();
+      if (rem <= 0) {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        msgSend.disabled = false;
+        msgSend.textContent = 'Send';
+        msgFeedback.classList.remove('visible');
+        return;
+      }
+      msgFeedback.textContent = `cooldown — ${fmtCooldown(rem)}`;
+      msgFeedback.className = 'msg-feedback visible cooldown';
+    }
+
+    tick();
+    cooldownTimer = setInterval(tick, 1000);
   }
 
   // check on load
   (function() {
     const rem = checkCooldown();
-    if (rem > 0) {
-      msgSend.disabled = true;
-      setFeedback(`you can send again in ${fmtCooldown(rem)}`, 'cooldown');
-    }
+    if (rem > 0) startCooldownDisplay();
   })();
 
   msgSend.addEventListener('click', async () => {
@@ -714,7 +733,7 @@
     if (!text) { setFeedback('write something first!', 'error'); return; }
 
     const rem = checkCooldown();
-    if (rem > 0) { setFeedback(`wait ${fmtCooldown(rem)} before sending again`, 'cooldown'); return; }
+    if (rem > 0) { startCooldownDisplay(); return; }
 
     const name = msgName.value.trim() || 'anonymous';
     msgSend.disabled = true;
@@ -748,6 +767,7 @@
         msgText.value = '';
         msgName.value = '';
         setFeedback('message sent ✓', 'success');
+        setTimeout(() => startCooldownDisplay(), 1200);
       } else {
         throw new Error('bad response');
       }
@@ -756,8 +776,6 @@
       msgSend.disabled = false;
     } finally {
       msgSend.textContent = 'Send';
-      const remAfter = checkCooldown();
-      if (remAfter > 0) msgSend.disabled = true;
     }
   });
 
