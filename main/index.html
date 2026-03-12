@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile</title>
+  <title>kay's profile</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;800&family=Patrick+Hand&display=swap" rel="stylesheet" />
@@ -234,7 +234,7 @@
   <div class="card">
     <div class="profile-row">
       <div class="avatar-wrap">
-        <img class="avatar-img" id="rblxAvatar" src="" alt="roblox avatar"
+        <img class="avatar-img" id="rblxAvatar" src="https://tr.rbxcdn.com/30DAY-Avatar-3AD5A7A8A6E4FC0300E7918E00A1CF71-Png/720/720/Avatar/Webp/noFilter" alt="roblox avatar"
           style="background:rgba(255,255,255,0.05);"
           onerror="this.src=''" />
         <div class="status-pip" id="rblxPip"></div>
@@ -397,31 +397,24 @@
 
   async function fetchRoblox() {
     try {
-      /* Avatar headshot */
-      const thumbRes = await fetch(
-        `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${RBLX_ID}&size=150x150&format=Png&isCircular=false`
-      );
-      const thumbData = await thumbRes.json();
-      const avatarUrl = thumbData?.data?.[0]?.imageUrl;
-      if (avatarUrl) {
-        const img = document.getElementById('rblxAvatar');
-        img.src = avatarUrl;
-        img.style.background = 'transparent';
-      }
-
       /* Display name */
-      const userRes = await fetch(`https://users.roblox.com/v1/users/${RBLX_ID}`);
-      const userData = await userRes.json();
-      if (userData?.displayName) {
-        document.getElementById('rblxName').textContent = userData.displayName;
-      }
+      try {
+        const userRes = await fetch(`https://users.roblox.com/v1/users/${RBLX_ID}`);
+        const userData = await userRes.json();
+        if (userData?.displayName) {
+          document.getElementById('rblxName').textContent = userData.displayName;
+        }
+      } catch(_) {}
 
-      /* Presence */
-      const presRes = await fetch('https://presence.roblox.com/v1/presence/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: [RBLX_ID] })
-      });
+      /* Presence — use corsproxy.io to bypass CORS restriction */
+      const presRes = await fetch(
+        'https://corsproxy.io/?' + encodeURIComponent('https://presence.roblox.com/v1/presence/users'),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: [RBLX_ID] })
+        }
+      );
       const presData = await presRes.json();
       const pres = presData?.userPresences?.[0];
       if (!pres) return;
