@@ -41,34 +41,66 @@
       width: 100%; max-width: 960px; position: relative; z-index: 1;
       display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
     }
+
+    /* ── CARD WRAPPER — card + fav game stacked with no gap ── */
+    .card-stack { display: flex; flex-direction: column; opacity: 0; }
+    .card-stack:nth-child(1) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.04s forwards; }
+    .card-stack:nth-child(2) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.14s forwards; }
+
     .card {
       background: var(--card); border: 1px solid var(--border);
       border-top-color: var(--border-top); border-radius: 28px; padding: 32px;
-      opacity: 0; backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
       box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 32px 64px rgba(0,0,0,0.55), 0 4px 20px rgba(0,0,0,0.4);
     }
-    .card:nth-child(1) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.04s forwards; }
-    .card:nth-child(2) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.14s forwards; }
+    .card-stack:has(.fav-game) .card {
+      border-radius: 28px 28px 0 0;
+      box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 -4px 0 rgba(0,0,0,0.2);
+      border-bottom: none;
+    }
+
+    /* ── FAVORITE GAME ATTACHED BOX ── */
+    .fav-game {
+      background: rgba(255,255,255,0.026);
+      border: 1px solid var(--border);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-radius: 0 0 28px 28px;
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 14px;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.3);
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .fav-game:hover { background: rgba(255,255,255,0.045); }
+    .fav-label {
+      font-size: 9px; font-weight: 800; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--dim); margin-bottom: 4px;
+    }
+    .fav-logo { height: 26px; width: auto; object-fit: contain; flex-shrink: 0; filter: brightness(0.9); }
+    .fav-arrow {
+      margin-left: auto; flex-shrink: 0;
+      color: var(--dim); font-size: 14px; line-height: 1;
+      transition: color 0.2s, transform 0.2s;
+    }
+    .fav-game:hover .fav-arrow { color: var(--muted); transform: translateX(2px); }
+
+    /* ── PLATFORM LABEL ── */
     .platform-label {
       font-size: 9px; font-weight: 800; letter-spacing: 0.18em;
       text-transform: uppercase; color: var(--dim);
       margin-bottom: 20px; display: flex; align-items: center; gap: 7px;
     }
     .platform-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+
+    /* ── PROFILE ROW ── */
     .profile-row { display: flex; align-items: flex-start; gap: 20px; }
     .avatar-wrap { position: relative; flex-shrink: 0; }
     .avatar-img { width: 96px; height: 96px; border-radius: 20px; object-fit: cover; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-    .status-pip {
-      position: absolute; bottom: -6px; right: -6px;
-      width: 22px; height: 22px; border-radius: 50%;
-      border: 3px solid #0a0a0a; display: flex; align-items: center; justify-content: center;
-    }
     .profile-info { padding-top: 4px; }
     .dc-name { font-family: 'Patrick Hand', cursive; font-weight: 400; font-size: 22px; line-height: 1.1; color: var(--white); }
     .handle { font-size: 11px; color: var(--muted); margin-top: 5px; font-weight: 600; }
-    .status-line { display: flex; align-items: center; gap: 7px; margin-top: 12px; }
-    .status-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .status-label { font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.6s; }
+
+    /* ── ACTIVITY BLOCKS ── */
     .activity-block {
       margin-top: 20px; background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.07); border-top-color: rgba(255,255,255,0.11);
@@ -108,16 +140,17 @@
       background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
       border-top-color: rgba(255,255,255,0.2); border-radius: 8px; padding: 7px 13px;
       font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--white); text-decoration: none; cursor: pointer;
+      text-transform: uppercase; color: var(--white); text-decoration: none;
       transition: background 0.2s, border-color 0.2s;
     }
     .join-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.26); }
-    .join-btn svg { flex-shrink: 0; }
+
     @keyframes up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
     @media (max-width: 640px) {
       html, body { padding: 20px 16px; }
       .container { grid-template-columns: 1fr; }
-      .card { padding: 22px; }
+      .card, .fav-game { padding-left: 22px; padding-right: 22px; }
+      .card { padding-top: 22px; padding-bottom: 22px; }
       .dc-name { font-size: 20px; }
     }
   </style>
@@ -126,70 +159,54 @@
 <div class="grain"></div>
 <div class="container">
 
-  <div class="card">
-    <div class="platform-label">Discord</div>
-    <div class="profile-row">
-      <div class="avatar-wrap">
-        <img class="avatar-img" id="dcAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="avatar" />
-        <div class="status-pip" id="statusPip"></div>
-      </div>
-      <div class="profile-info">
-        <div class="dc-name" id="dcName">—</div>
-        <div class="handle" id="dcHandle">@...</div>
-        <div class="status-line">
-          <div class="status-icon" id="statusIcon"></div>
-          <div class="status-label" id="statusLabel">offline</div>
+  <!-- ── DISCORD STACK ── -->
+  <div class="card-stack">
+    <div class="card">
+      <div class="platform-label">Discord</div>
+      <div class="profile-row">
+        <div class="avatar-wrap">
+          <img class="avatar-img" id="dcAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="avatar" />
+        </div>
+        <div class="profile-info">
+          <div class="dc-name" id="dcName">—</div>
+          <div class="handle" id="dcHandle">@...</div>
         </div>
       </div>
+      <div id="activityArea"></div>
     </div>
-    <div id="activityArea"></div>
   </div>
 
-  <div class="card">
-    <div class="platform-label">Roblox</div>
-    <div class="profile-row">
-      <div class="avatar-wrap">
-        <img class="avatar-img" id="rblxAvatar"
-          src="https://tr.rbxcdn.com/30DAY-Avatar-3AD5A7A8A6E4FC0300E7918E00A1CF71-Png/720/720/Avatar/Webp/noFilter"
-          alt="roblox avatar" />
-        <div class="status-pip" id="rblxPip"></div>
-      </div>
-      <div class="profile-info">
-        <div class="dc-name" id="rblxName">inhumanintelligence</div>
-        <div class="handle">@inhumanintelligence</div>
-        <div class="status-line">
-          <div class="status-icon" id="rblxStatusIcon"></div>
-          <div class="status-label" id="rblxStatusLabel">loading...</div>
+  <!-- ── ROBLOX STACK ── -->
+  <div class="card-stack">
+    <div class="card">
+      <div class="platform-label">Roblox</div>
+      <div class="profile-row">
+        <div class="avatar-wrap">
+          <img class="avatar-img" id="rblxAvatar"
+            src="https://tr.rbxcdn.com/30DAY-Avatar-3AD5A7A8A6E4FC0300E7918E00A1CF71-Png/720/720/Avatar/Webp/noFilter"
+            alt="roblox avatar" />
+        </div>
+        <div class="profile-info">
+          <div class="dc-name" id="rblxName">inhumanintelligence</div>
+          <div class="handle">@inhumanintelligence</div>
         </div>
       </div>
+      <div id="rblxActivityArea"></div>
     </div>
-    <div id="rblxActivityArea"></div>
+    <a class="fav-game" href="https://www.roblox.com/games/6516141723" target="_blank" rel="noopener">
+      <div>
+        <div class="fav-label">Favorite Game</div>
+        <img class="fav-logo" src="https://cdn2.steamgriddb.com/logo_thumb/ad3a14270fa2d83b1fec766852384865.png" alt="favorite game logo" />
+      </div>
+      <div class="fav-arrow">→</div>
+    </a>
   </div>
 
 </div>
 <script>
   const DISCORD_ID = "1439946318083784866";
   const STATUS_LABELS = { online:"online", idle:"idle", dnd:"do not disturb", offline:"offline" };
-  const STATUS_COLOR  = { online:"#c8c8c8", idle:"#aaa", dnd:"#999", offline:"#555" };
 
-  function statusSVG(s) {
-    if (s==='online') return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
-    if (s==='idle')   return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/><circle cx="7" cy="3" r="3.5" fill="#0a0a0a"/></svg>`;
-    if (s==='dnd')    return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#888"/><rect x="2" y="4" width="6" height="2" rx="1" fill="#0a0a0a"/></svg>`;
-    return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
-  }
-  function pipSVG(s) {
-    if (s==='online') return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
-    if (s==='idle')   return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/><circle cx="7" cy="3" r="3.5" fill="#0a0a0a"/></svg>`;
-    if (s==='dnd')    return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#888"/><rect x="2" y="4" width="6" height="2" rx="1" fill="#0a0a0a"/></svg>`;
-    return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
-  }
-  function applyStatus(s) {
-    document.getElementById('statusLabel').textContent = STATUS_LABELS[s]||'offline';
-    document.getElementById('statusLabel').style.color = STATUS_COLOR[s]||STATUS_COLOR.offline;
-    document.getElementById('statusIcon').innerHTML = statusSVG(s);
-    document.getElementById('statusPip').innerHTML  = pipSVG(s);
-  }
   function esc(s) { if(!s)return''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function assetUrl(appId, key) {
     if (!key) return null;
@@ -257,55 +274,12 @@
       }
       document.getElementById('dcName').textContent   = u.global_name||u.username||'—';
       document.getElementById('dcHandle').textContent = '@'+(u.username||'...');
-      applyStatus(d.discord_status);
       renderActivity(d.activities, d.spotify);
     } catch(e){ console.warn('Lanyard error',e); }
   }
 
   /* ── ROBLOX ── */
   const RBLX_ID = 8499836409;
-  const RBLX_LABELS = {0:'offline',1:'online',2:'in game',3:'in studio'};
-  const RBLX_COLORS = {0:'#555',1:'#c8c8c8',2:'#c8c8c8',3:'#aaa'};
-
-  function rblxStatusSVG(t){
-    if(t===1||t===2) return`<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
-    if(t===3)        return`<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/></svg>`;
-    return`<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
-  }
-  function rblxPipSVG(t){
-    if(t===1||t===2) return`<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
-    if(t===3)        return`<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/></svg>`;
-    return`<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
-  }
-  function applyRblxStatus(t){
-    document.getElementById('rblxStatusLabel').textContent = RBLX_LABELS[t]??'offline';
-    document.getElementById('rblxStatusLabel').style.color = RBLX_COLORS[t]??'#555';
-    document.getElementById('rblxStatusIcon').innerHTML = rblxStatusSVG(t);
-    document.getElementById('rblxPip').innerHTML = rblxPipSVG(t);
-  }
-
-  async function fetchRobloxPresence() {
-    const target = 'https://presence.roblox.com/v1/presence/users';
-    const body = JSON.stringify({ userIds: [RBLX_ID] });
-    const proxies = [
-      url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    ];
-    for (const makeUrl of proxies) {
-      try {
-        const res = await fetch(makeUrl(target), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-requested-with': 'XMLHttpRequest' },
-          body
-        });
-        if (!res.ok) continue;
-        const data = await res.json();
-        const pres = data?.userPresences?.[0];
-        if (pres) return pres;
-      } catch(e) { console.warn('Proxy failed:', e); }
-    }
-    return null;
-  }
 
   async function fetchRoblox() {
     try {
@@ -313,57 +287,11 @@
       const userData = await userRes.json();
       if (userData?.displayName) document.getElementById('rblxName').textContent = userData.displayName;
     } catch(_) {}
-
-    const pres = await fetchRobloxPresence();
-    const pt = pres?.userPresenceType ?? 0;
-    applyRblxStatus(pt);
-
-    const area = document.getElementById('rblxActivityArea');
-    area.innerHTML = '';
-
-    if (pt === 2 && pres) {
-      const gameName = pres.lastLocation || 'a Roblox game';
-      const rootPlaceId = pres.rootPlaceId || pres.placeId;
-      const gameId = pres.gameId;
-      let thumb = '';
-      if (rootPlaceId) {
-        try {
-          const r = await fetch(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${rootPlaceId}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`);
-          const d = await r.json();
-          thumb = d?.data?.[0]?.imageUrl || '';
-        } catch(_) {}
-      }
-      const joinUrl = rootPlaceId
-        ? (gameId ? `https://www.roblox.com/games/start?placeId=${rootPlaceId}&gameInstanceId=${gameId}` : `https://www.roblox.com/games/${rootPlaceId}/`)
-        : 'https://www.roblox.com';
-      const el = document.createElement('div');
-      el.className = 'activity-block';
-      el.style.marginTop = '20px';
-      el.innerHTML = `
-        ${thumb?`<img class="rblx-thumb" src="${esc(thumb)}" alt="${esc(gameName)}"/>`:`<div class="act-thumb-placeholder">🎮</div>`}
-        <div style="flex:1;min-width:0;">
-          <div class="act-tag">playing</div>
-          <div class="rblx-game-name">${esc(gameName)}</div>
-          <div class="rblx-game-detail">Roblox</div>
-          <a class="join-btn" href="${esc(joinUrl)}" target="_blank" rel="noopener">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polygon points="2,1 9,5 2,9" fill="currentColor"/></svg>
-            Join Game
-          </a>
-        </div>`;
-      area.appendChild(el);
-    } else if (pt===3) {
-      area.innerHTML=`<div class="no-activity" style="margin-top:20px;">in roblox studio</div>`;
-    } else if (pt===1) {
-      area.innerHTML=`<div class="no-activity" style="margin-top:20px;">browsing roblox</div>`;
-    } else {
-      area.innerHTML=`<div class="no-activity" style="margin-top:20px;">not playing anything</div>`;
-    }
   }
 
   fetchLanyard();
   setInterval(fetchLanyard, 10_000);
   fetchRoblox();
-  setInterval(fetchRoblox, 30_000);
 </script>
 </body>
 </html>
