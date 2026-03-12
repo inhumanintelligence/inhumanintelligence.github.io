@@ -60,7 +60,7 @@
 
     .container {
       width: 100%;
-      max-width: 460px;
+      max-width: 500px;
       position: relative;
       z-index: 1;
     }
@@ -97,39 +97,38 @@
       filter: grayscale(30%);
     }
     .status-pip {
-      position: absolute; bottom: -3px; right: -3px;
-      width: 14px; height: 14px;
+      position: absolute; bottom: -4px; right: -4px;
+      width: 20px; height: 20px;
       border-radius: 50%;
-      background: var(--dim);
       border: 2.5px solid #0d0d0d;
       transition: background 0.8s;
+      display: flex; align-items: center; justify-content: center;
+      overflow: visible;
     }
 
     .name {
       font-family: 'Fredoka One', cursive;
-      font-size: 34px;
+      font-size: 36px;
       line-height: 1;
       color: var(--white);
     }
     .handle {
       font-size: 14px;
       color: var(--muted);
-      margin-top: 6px;
+      margin-top: 7px;
       font-weight: 600;
     }
     .status-line {
       display: flex; align-items: center; gap: 7px;
-      margin-top: 12px;
+      margin-top: 13px;
     }
-    .status-dot-sm {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--dim);
-      transition: background 0.8s;
+    .status-icon {
+      width: 16px; height: 16px;
       flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
     }
     .status-label {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--muted);
       transition: color 0.8s;
@@ -206,7 +205,7 @@
       display: flex;
       align-items: flex-end;
       gap: 0;
-      min-height: 165px;
+      min-height: 140px;
       background: rgba(255,255,255,0.025);
       border-bottom: 1px solid rgba(255,255,255,0.07);
       overflow: hidden;
@@ -217,23 +216,23 @@
       pointer-events: none;
     }
     .rbx-avatar-full {
-      width: 130px;
-      height: 165px;
+      width: 140px;
+      height: 140px;
       object-fit: cover;
       object-position: top center;
       flex-shrink: 0;
-      filter: grayscale(25%);
+      filter: grayscale(20%);
       position: relative;
       z-index: 1;
     }
     .rbx-avatar-placeholder {
-      width: 130px; height: 165px;
+      width: 140px; height: 140px;
       background: rgba(255,255,255,0.04);
       flex-shrink: 0;
     }
     .rbx-banner-info {
       flex: 1; min-width: 0;
-      padding: 22px 22px 22px 16px;
+      padding: 24px 24px 24px 18px;
       position: relative; z-index: 1;
       display: flex; flex-direction: column; justify-content: flex-end;
     }
@@ -260,23 +259,8 @@
     }
     .rbx-banner-btn:hover { background: rgba(255,255,255,0.13); color: var(--white); }
 
-    /* Stats row */
-    .rbx-stats {
-      display: flex;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .rbx-stat {
-      flex: 1;
-      padding: 20px 0;
-      text-align: center;
-      border-right: 1px solid rgba(255,255,255,0.06);
-    }
-    .rbx-stat:last-child { border-right: none; }
-    .rbx-stat-num { font-family: 'Fredoka One', cursive; font-size: 24px; color: var(--white); line-height: 1; }
-    .rbx-stat-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin-top: 5px; }
-
     /* Body padding wrapper */
-    .rbx-body { padding: 0 26px 24px; }
+    .rbx-body { padding: 26px 28px 28px; }
     /* Roblox in-game status */
     .rbx-game-row {
       margin-top: 18px;
@@ -359,7 +343,7 @@
         <div class="name" id="dcName">—</div>
         <div class="handle" id="dcHandle">@...</div>
         <div class="status-line">
-          <div class="status-dot-sm" id="statusDotSm"></div>
+          <div class="status-icon" id="statusIcon"></div>
           <div class="status-label" id="statusLabel">offline</div>
         </div>
       </div>
@@ -381,21 +365,6 @@
       </div>
       <a class="rbx-banner-btn" id="rbxLink" href="#" target="_blank" rel="noopener">view ↗</a>
     </div>
-    <!-- Stats -->
-    <div class="rbx-stats">
-      <div class="rbx-stat">
-        <div class="rbx-stat-num" id="rbxFriends">—</div>
-        <div class="rbx-stat-label">friends</div>
-      </div>
-      <div class="rbx-stat">
-        <div class="rbx-stat-num" id="rbxFollowers">—</div>
-        <div class="rbx-stat-label">followers</div>
-      </div>
-      <div class="rbx-stat">
-        <div class="rbx-stat-num" id="rbxFollowing">—</div>
-        <div class="rbx-stat-label">following</div>
-      </div>
-    </div>
     <!-- Game status + description -->
     <div class="rbx-body">
       <div id="rbxGameStatus"></div>
@@ -409,14 +378,30 @@
   const ROBLOX_ID  = "8499836409";
 
   const STATUS_LABELS = { online:"online", idle:"idle", dnd:"do not disturb", offline:"offline" };
-  const STATUS_BRIGHT = { online:"#d4d4d4", idle:"#999", dnd:"#666", offline:"#444" };
+  const STATUS_COLOR  = { online:"#c8c8c8", idle:"#aaa", dnd:"#999", offline:"#555" };
+
+  // SVG icons matching Discord status shapes, monochrome
+  function statusSVG(s) {
+    if (s === 'online') return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
+    if (s === 'idle')   return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/><circle cx="7" cy="3" r="3.5" fill="#0d0d0d"/></svg>`;
+    if (s === 'dnd')    return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#888"/><rect x="2" y="4" width="6" height="2" rx="1" fill="#0d0d0d"/></svg>`;
+    /* offline */        return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
+  }
+
+  function pipSVG(s) {
+    if (s === 'online') return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
+    if (s === 'idle')   return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/><circle cx="7" cy="3" r="3.5" fill="#0d0d0d"/></svg>`;
+    if (s === 'dnd')    return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#888"/><rect x="2" y="4" width="6" height="2" rx="1" fill="#0d0d0d"/></svg>`;
+    return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
+  }
 
   function applyStatus(s) {
-    const color = STATUS_BRIGHT[s] || STATUS_BRIGHT.offline;
+    const color = STATUS_COLOR[s] || STATUS_COLOR.offline;
     document.getElementById('statusLabel').textContent = STATUS_LABELS[s] || 'offline';
     document.getElementById('statusLabel').style.color = color;
-    document.getElementById('statusDotSm').style.background = color;
-    document.getElementById('statusPip').style.background   = color;
+    document.getElementById('statusIcon').innerHTML = statusSVG(s);
+    document.getElementById('statusPip').innerHTML  = pipSVG(s);
+    document.getElementById('statusPip').style.background = 'transparent';
   }
 
   function esc(s) {
@@ -540,58 +525,37 @@
     } catch(e) {}
   }
 
-  function fmtNum(n) {
-    if (n === undefined || n === null) return '—';
-    if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
-    if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
-    return String(n);
-  }
-
   async function fetchRoblox() {
     try {
-      const [userRes, avatarRes, friendsRes, followersRes, followingRes] = await Promise.all([
+      const [userRes, avatarRes] = await Promise.all([
         fetch(`https://users.roblox.com/v1/users/${ROBLOX_ID}`),
         fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${ROBLOX_ID}&size=420x420&format=Png&isCircular=false`),
-        fetch(`https://friends.roblox.com/v1/users/${ROBLOX_ID}/friends/count`),
-        fetch(`https://friends.roblox.com/v1/users/${ROBLOX_ID}/followers/count`),
-        fetch(`https://friends.roblox.com/v1/users/${ROBLOX_ID}/followings/count`),
       ]);
 
-      const user      = await userRes.json();
-      const avatar    = await avatarRes.json();
-      const friends   = await friendsRes.json().catch(()=>({}));
-      const followers = await followersRes.json().catch(()=>({}));
-      const following = await followingRes.json().catch(()=>({}));
+      const user   = await userRes.json();
+      const avatar = await avatarRes.json();
 
       document.getElementById('rbxName').textContent   = user.displayName || user.name || '—';
       document.getElementById('rbxHandle').textContent = '@' + (user.name || '...');
       document.getElementById('rbxLink').href = `https://www.roblox.com/users/${ROBLOX_ID}/profile`;
 
-      // Join date
       if (user.created) {
         const d = new Date(user.created);
-        const joined = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const joined = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         document.getElementById('rbxJoined').textContent = 'joined ' + joined;
       }
 
-      // Full body avatar
       const imgUrl = avatar.data?.[0]?.imageUrl;
       if (imgUrl) {
         const wrap = document.getElementById('rbxThumb');
-        const img = document.createElement('img');
-        img.id = 'rbxThumb';
+        const img  = document.createElement('img');
+        img.id        = 'rbxThumb';
         img.className = 'rbx-avatar-full';
-        img.src = imgUrl;
-        img.alt = 'roblox avatar';
+        img.src       = imgUrl;
+        img.alt       = 'roblox avatar';
         wrap.replaceWith(img);
       }
 
-      // Stats
-      document.getElementById('rbxFriends').textContent   = fmtNum(friends.count);
-      document.getElementById('rbxFollowers').textContent = fmtNum(followers.count);
-      document.getElementById('rbxFollowing').textContent = fmtNum(following.count);
-
-      // Description
       if (user.description) {
         document.getElementById('rbxDesc').innerHTML =
           `<div class="roblox-desc">"${esc(user.description)}"</div>`;
