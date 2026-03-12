@@ -9,201 +9,116 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;800&family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0a0a0a;
-      --card: rgba(255,255,255,0.042);
-      --border: rgba(255,255,255,0.08);
-      --border-top: rgba(255,255,255,0.14);
-      --text: #f0f0f0;
-      --muted: #888;
-      --dim: #444;
-      --white: #ffffff;
+      --bg: #0a0a0a; --card: rgba(255,255,255,0.042);
+      --border: rgba(255,255,255,0.08); --border-top: rgba(255,255,255,0.14);
+      --text: #f0f0f0; --muted: #888; --dim: #444; --white: #ffffff;
     }
-
     html, body {
-      min-height: 100vh;
-      background: var(--bg);
-      font-family: 'Barlow', sans-serif;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 28px 20px;
-      overflow-x: hidden;
+      min-height: 100vh; background: var(--bg);
+      font-family: 'Barlow', sans-serif; color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 32px; overflow-x: hidden;
     }
-
     body::before {
-      content: '';
-      position: fixed;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 65%);
-      top: -200px; left: -150px;
-      border-radius: 50%;
-      filter: blur(80px);
-      pointer-events: none;
-      z-index: 0;
+      content: ''; position: fixed; width: 900px; height: 900px;
+      background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 65%);
+      top: -300px; left: -200px; border-radius: 50%;
+      filter: blur(100px); pointer-events: none; z-index: 0;
     }
-
+    body::after {
+      content: ''; position: fixed; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 65%);
+      bottom: -200px; right: -100px; border-radius: 50%;
+      filter: blur(80px); pointer-events: none; z-index: 0;
+    }
     .grain {
       position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.03;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
       background-size: 180px 180px;
     }
-
     .container {
-      width: 100%;
-      max-width: 500px;
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      width: 100%; max-width: 960px; position: relative; z-index: 1;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
     }
-
     .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-top-color: var(--border-top);
-      border-radius: 24px;
-      padding: 28px;
-      opacity: 0;
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      box-shadow:
-        0 1px 0 0 rgba(255,255,255,0.07) inset,
-        0 28px 56px rgba(0,0,0,0.5),
-        0 4px 16px rgba(0,0,0,0.35);
+      background: var(--card); border: 1px solid var(--border);
+      border-top-color: var(--border-top); border-radius: 28px; padding: 32px;
+      opacity: 0; backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 32px 64px rgba(0,0,0,0.55), 0 4px 20px rgba(0,0,0,0.4);
     }
-
     .card:nth-child(1) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.04s forwards; }
     .card:nth-child(2) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.14s forwards; }
-
-    /* ── SHARED PROFILE ROW ── */
-    .profile-row { display: flex; align-items: center; gap: 20px; }
+    .platform-label {
+      font-size: 9px; font-weight: 800; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--dim);
+      margin-bottom: 20px; display: flex; align-items: center; gap: 7px;
+    }
+    .platform-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+    .profile-row { display: flex; align-items: flex-start; gap: 20px; }
     .avatar-wrap { position: relative; flex-shrink: 0; }
-    .avatar-img { width: 82px; height: 82px; border-radius: 18px; object-fit: cover; display: block; }
+    .avatar-img { width: 96px; height: 96px; border-radius: 20px; object-fit: cover; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
     .status-pip {
-      position: absolute; bottom: -5px; right: -5px;
-      width: 20px; height: 20px; border-radius: 50%;
-      border: 2.5px solid #0a0a0a;
-      display: flex; align-items: center; justify-content: center;
+      position: absolute; bottom: -6px; right: -6px;
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 3px solid #0a0a0a; display: flex; align-items: center; justify-content: center;
     }
-    .dc-name {
-      font-family: 'Patrick Hand', cursive;
-      font-weight: 400; font-size: 20px; line-height: 1;
-      color: var(--white); letter-spacing: 0;
-    }
-    .handle { font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 600; }
-    .status-line { display: flex; align-items: center; gap: 7px; margin-top: 11px; }
+    .profile-info { padding-top: 4px; }
+    .dc-name { font-family: 'Patrick Hand', cursive; font-weight: 400; font-size: 22px; line-height: 1.1; color: var(--white); }
+    .handle { font-size: 11px; color: var(--muted); margin-top: 5px; font-weight: 600; }
+    .status-line { display: flex; align-items: center; gap: 7px; margin-top: 12px; }
     .status-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .status-label {
-      font-size: 10px; font-weight: 800; color: var(--muted);
-      letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.6s;
-    }
-
-    /* ── DISCORD ACTIVITY ── */
+    .status-label { font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.6s; }
     .activity-block {
-      margin-top: 18px;
-      background: rgba(255,255,255,0.035);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-top-color: rgba(255,255,255,0.11);
-      border-radius: 16px; padding: 14px 16px;
-      display: flex; align-items: center; gap: 14px;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 24px rgba(0,0,0,0.28);
+      margin-top: 20px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07); border-top-color: rgba(255,255,255,0.11);
+      border-radius: 18px; padding: 16px 18px;
+      display: flex; align-items: center; gap: 16px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.3);
     }
-    .act-thumb { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+    .act-thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
     .act-thumb-placeholder {
-      width: 52px; height: 52px; border-radius: 10px;
+      width: 60px; height: 60px; border-radius: 12px;
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);
-      display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;
     }
-    .act-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin-bottom: 4px; }
-    .act-name { font-family: 'Patrick Hand', cursive; font-weight: 800; font-size: 15px; color: var(--white); line-height: 1.1; text-transform: uppercase; }
+    .act-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin-bottom: 5px; }
+    .act-name { font-family: 'Patrick Hand', cursive; font-size: 16px; color: var(--white); line-height: 1.2; }
     .act-detail { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 600; }
     .act-state  { font-size: 11px; color: var(--dim); margin-top: 2px; }
-
     .sp-thumb-wrap { position: relative; flex-shrink: 0; }
-    .sp-thumb { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; }
-    .sp-icon {
-      position: absolute; bottom: -4px; right: -4px;
-      background: #d4d4d4; border-radius: 50%;
-      width: 17px; height: 17px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .sp-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin-bottom: 4px; }
-    .sp-song   { font-family: 'Patrick Hand', cursive; font-weight: 800; font-size: 15px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
+    .sp-thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; }
+    .sp-icon { position: absolute; bottom: -4px; right: -4px; background: #d4d4d4; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+    .sp-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin-bottom: 5px; }
+    .sp-song { font-family: 'Patrick Hand', cursive; font-size: 16px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sp-artist { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 600; }
-    .sp-bar    { margin-top: 9px; background: rgba(255,255,255,0.07); border-radius: 4px; height: 2px; }
-    .sp-fill   { height: 100%; background: rgba(255,255,255,0.65); border-radius: 4px; transition: width 1s linear; width: 0%; }
-
+    .sp-bar { margin-top: 10px; background: rgba(255,255,255,0.07); border-radius: 4px; height: 2px; }
+    .sp-fill { height: 100%; background: rgba(255,255,255,0.55); border-radius: 4px; transition: width 1s linear; width: 0%; }
     .no-activity {
-      margin-top: 18px; padding: 13px 16px;
-      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 16px; font-size: 12px; font-weight: 800;
+      margin-top: 20px; padding: 16px 18px;
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 18px; font-size: 11px; font-weight: 800;
       color: var(--dim); text-align: center; letter-spacing: 0.07em; text-transform: uppercase;
     }
-
-    /* ── ROBLOX CARD ── */
-    .rblx-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-    .rblx-logo-tag {
-      font-size: 9px; font-weight: 800; letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--dim);
-      display: flex; align-items: center; gap: 5px;
-    }
-
-    .rblx-activity {
-      margin-top: 0;
-      background: rgba(255,255,255,0.035);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-top-color: rgba(255,255,255,0.11);
-      border-radius: 16px; padding: 14px 16px;
-      display: flex; align-items: center; gap: 14px;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 24px rgba(0,0,0,0.28);
-    }
-    .rblx-thumb {
-      width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex-shrink: 0;
-      background: rgba(255,255,255,0.05);
-    }
-    .rblx-game-name {
-      font-family: 'Patrick Hand', cursive; font-weight: 800;
-      font-size: 15px; color: var(--white); line-height: 1.1; text-transform: uppercase;
-    }
+    .rblx-thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,0.05); }
+    .rblx-game-name { font-family: 'Patrick Hand', cursive; font-size: 16px; color: var(--white); line-height: 1.2; }
     .rblx-game-detail { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 600; }
-
     .join-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      margin-top: 10px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-top-color: rgba(255,255,255,0.22);
-      border-radius: 8px;
-      padding: 6px 12px;
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+      background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
+      border-top-color: rgba(255,255,255,0.2); border-radius: 8px; padding: 7px 13px;
       font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--white);
-      text-decoration: none;
-      cursor: pointer;
+      text-transform: uppercase; color: var(--white); text-decoration: none; cursor: pointer;
       transition: background 0.2s, border-color 0.2s;
     }
-    .join-btn:hover {
-      background: rgba(255,255,255,0.16);
-      border-color: rgba(255,255,255,0.28);
-    }
+    .join-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.26); }
     .join-btn svg { flex-shrink: 0; }
-
-    @keyframes up {
-      from { opacity: 0; transform: translateY(14px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 400px) {
-      .dc-name { font-size: 17px; }
-      .card { padding: 18px; }
+    @keyframes up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 640px) {
+      html, body { padding: 20px 16px; }
+      .container { grid-template-columns: 1fr; }
+      .card { padding: 22px; }
+      .dc-name { font-size: 20px; }
     }
   </style>
 </head>
@@ -211,14 +126,14 @@
 <div class="grain"></div>
 <div class="container">
 
-  <!-- ── DISCORD CARD ── -->
   <div class="card">
+    <div class="platform-label">Discord</div>
     <div class="profile-row">
       <div class="avatar-wrap">
         <img class="avatar-img" id="dcAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="avatar" />
         <div class="status-pip" id="statusPip"></div>
       </div>
-      <div>
+      <div class="profile-info">
         <div class="dc-name" id="dcName">—</div>
         <div class="handle" id="dcHandle">@...</div>
         <div class="status-line">
@@ -230,21 +145,21 @@
     <div id="activityArea"></div>
   </div>
 
-  <!-- ── ROBLOX CARD ── -->
   <div class="card">
+    <div class="platform-label">Roblox</div>
     <div class="profile-row">
       <div class="avatar-wrap">
-        <img class="avatar-img" id="rblxAvatar" src="https://tr.rbxcdn.com/30DAY-Avatar-3AD5A7A8A6E4FC0300E7918E00A1CF71-Png/720/720/Avatar/Webp/noFilter" alt="roblox avatar"
-          style="background:rgba(255,255,255,0.05);"
-          onerror="this.src=''" />
+        <img class="avatar-img" id="rblxAvatar"
+          src="https://tr.rbxcdn.com/30DAY-Avatar-3AD5A7A8A6E4FC0300E7918E00A1CF71-Png/720/720/Avatar/Webp/noFilter"
+          alt="roblox avatar" />
         <div class="status-pip" id="rblxPip"></div>
       </div>
-      <div>
+      <div class="profile-info">
         <div class="dc-name" id="rblxName">inhumanintelligence</div>
         <div class="handle">@inhumanintelligence</div>
         <div class="status-line">
           <div class="status-icon" id="rblxStatusIcon"></div>
-          <div class="status-label" id="rblxStatusLabel">offline</div>
+          <div class="status-label" id="rblxStatusLabel">loading...</div>
         </div>
       </div>
     </div>
@@ -253,9 +168,6 @@
 
 </div>
 <script>
-  /* ═══════════════════════════════
-     DISCORD — Lanyard
-  ═══════════════════════════════ */
   const DISCORD_ID = "1439946318083784866";
   const STATUS_LABELS = { online:"online", idle:"idle", dnd:"do not disturb", offline:"offline" };
   const STATUS_COLOR  = { online:"#c8c8c8", idle:"#aaa", dnd:"#999", offline:"#555" };
@@ -272,19 +184,13 @@
     if (s==='dnd')    return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#888"/><rect x="2" y="4" width="6" height="2" rx="1" fill="#0a0a0a"/></svg>`;
     return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
   }
-
   function applyStatus(s) {
-    document.getElementById('statusLabel').textContent = STATUS_LABELS[s] || 'offline';
-    document.getElementById('statusLabel').style.color = STATUS_COLOR[s] || STATUS_COLOR.offline;
+    document.getElementById('statusLabel').textContent = STATUS_LABELS[s]||'offline';
+    document.getElementById('statusLabel').style.color = STATUS_COLOR[s]||STATUS_COLOR.offline;
     document.getElementById('statusIcon').innerHTML = statusSVG(s);
     document.getElementById('statusPip').innerHTML  = pipSVG(s);
   }
-
-  function esc(s) {
-    if (!s) return '';
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
+  function esc(s) { if(!s)return''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function assetUrl(appId, key) {
     if (!key) return null;
     if (key.startsWith('mp:external/')) return 'https://media.discordapp.net/external/' + key.replace('mp:external/','');
@@ -292,26 +198,21 @@
   }
 
   let spInterval = null;
-
   function renderActivity(activities, spotify) {
     const area = document.getElementById('activityArea');
     area.innerHTML = '';
     if (spInterval) { clearInterval(spInterval); spInterval = null; }
-    const acts = (activities || []).filter(a => a.type !== 2);
+    const acts = (activities||[]).filter(a=>a.type!==2);
     if (spotify) {
       const elapsed = Date.now() - spotify.timestamps.start;
       const total   = spotify.timestamps.end - spotify.timestamps.start;
-      const pct     = Math.min((elapsed / total) * 100, 100).toFixed(1);
+      const pct = Math.min((elapsed/total)*100,100).toFixed(1);
       const el = document.createElement('div');
       el.className = 'activity-block';
       el.innerHTML = `
         <div class="sp-thumb-wrap">
-          <img class="sp-thumb" src="${esc(spotify.album_art_url)}" alt="album" />
-          <div class="sp-icon">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="#111">
-              <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-            </svg>
-          </div>
+          <img class="sp-thumb" src="${esc(spotify.album_art_url)}" alt="album"/>
+          <div class="sp-icon"><svg width="9" height="9" viewBox="0 0 24 24" fill="#111"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg></div>
         </div>
         <div style="flex:1;min-width:0;">
           <div class="sp-tag">listening</div>
@@ -320,12 +221,11 @@
           <div class="sp-bar"><div class="sp-fill" id="spFill" style="width:${pct}%"></div></div>
         </div>`;
       area.appendChild(el);
-      spInterval = setInterval(() => {
-        const fill = document.getElementById('spFill');
-        if (!fill) { clearInterval(spInterval); return; }
-        const e2 = Date.now() - spotify.timestamps.start;
-        fill.style.width = Math.min((e2 / total) * 100, 100).toFixed(1) + '%';
-      }, 1000);
+      spInterval = setInterval(()=>{
+        const fill=document.getElementById('spFill');
+        if(!fill){clearInterval(spInterval);return;}
+        fill.style.width=Math.min(((Date.now()-spotify.timestamps.start)/total)*100,100).toFixed(1)+'%';
+      },1000);
     }
     if (acts[0]) {
       const a = acts[0];
@@ -333,20 +233,16 @@
       const el = document.createElement('div');
       el.className = 'activity-block';
       el.innerHTML = `
-        ${thumb
-          ? `<img class="act-thumb" src="${thumb}" alt="${esc(a.name)}" onerror="this.style.display='none'" />`
-          : `<div class="act-thumb-placeholder"></div>`}
+        ${thumb?`<img class="act-thumb" src="${thumb}" alt="${esc(a.name)}" onerror="this.style.display='none'"/>`:`<div class="act-thumb-placeholder"></div>`}
         <div style="flex:1;min-width:0;">
           <div class="act-tag">playing</div>
           <div class="act-name">${esc(a.name)}</div>
-          ${a.details ? `<div class="act-detail">${esc(a.details)}</div>` : ''}
-          ${a.state   ? `<div class="act-state">${esc(a.state)}</div>`   : ''}
+          ${a.details?`<div class="act-detail">${esc(a.details)}</div>`:''}
+          ${a.state?`<div class="act-state">${esc(a.state)}</div>`:''}
         </div>`;
       area.appendChild(el);
     }
-    if (!acts[0] && !spotify) {
-      area.innerHTML = `<div class="no-activity">not doing anything</div>`;
-    }
+    if (!acts[0]&&!spotify) area.innerHTML=`<div class="no-activity">not doing anything</div>`;
   }
 
   async function fetchLanyard() {
@@ -356,168 +252,116 @@
       if (!d) return;
       const u = d.discord_user;
       if (u.avatar) {
-        const ext = u.avatar.startsWith('a_') ? 'gif' : 'png';
-        document.getElementById('dcAvatar').src =
-          `https://cdn.discordapp.com/avatars/${DISCORD_ID}/${u.avatar}.${ext}?size=256`;
+        const ext = u.avatar.startsWith('a_')?'gif':'png';
+        document.getElementById('dcAvatar').src=`https://cdn.discordapp.com/avatars/${DISCORD_ID}/${u.avatar}.${ext}?size=256`;
       }
-      document.getElementById('dcName').textContent   = u.global_name || u.username || '—';
-      document.getElementById('dcHandle').textContent = '@' + (u.username || '...');
+      document.getElementById('dcName').textContent   = u.global_name||u.username||'—';
+      document.getElementById('dcHandle').textContent = '@'+(u.username||'...');
       applyStatus(d.discord_status);
       renderActivity(d.activities, d.spotify);
-    } catch(e) { console.warn('Lanyard error', e); }
+    } catch(e){ console.warn('Lanyard error',e); }
   }
 
-  /* ═══════════════════════════════
-     ROBLOX
-     presenceType: 0=offline, 1=online (website), 2=in-game, 3=in studio
-  ═══════════════════════════════ */
+  /* ── ROBLOX ── */
   const RBLX_ID = 8499836409;
-  const RBLX_PRESENCE_LABELS = { 0:'offline', 1:'online', 2:'in game', 3:'in studio' };
-  const RBLX_PRESENCE_COLORS = { 0:'#555',    1:'#c8c8c8', 2:'#c8c8c8', 3:'#aaa' };
+  const RBLX_LABELS = {0:'offline',1:'online',2:'in game',3:'in studio'};
+  const RBLX_COLORS = {0:'#555',1:'#c8c8c8',2:'#c8c8c8',3:'#aaa'};
 
-  function rblxStatusSVG(t) {
-    if (t===1||t===2) return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
-    if (t===3)        return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/></svg>`;
-    return `<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
+  function rblxStatusSVG(t){
+    if(t===1||t===2) return`<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
+    if(t===3)        return`<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/></svg>`;
+    return`<svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
   }
-  function rblxPipSVG(t) {
-    if (t===1||t===2) return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
-    if (t===3)        return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/></svg>`;
-    return `<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
+  function rblxPipSVG(t){
+    if(t===1||t===2) return`<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#d4d4d4"/></svg>`;
+    if(t===3)        return`<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#aaa"/></svg>`;
+    return`<svg width="12" height="12" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#555" stroke-width="1.8"/></svg>`;
   }
-
-  function applyRblxStatus(t) {
-    const label = RBLX_PRESENCE_LABELS[t] ?? 'offline';
-    const color = RBLX_PRESENCE_COLORS[t] ?? '#555';
-    document.getElementById('rblxStatusLabel').textContent = label;
-    document.getElementById('rblxStatusLabel').style.color = color;
+  function applyRblxStatus(t){
+    document.getElementById('rblxStatusLabel').textContent = RBLX_LABELS[t]??'offline';
+    document.getElementById('rblxStatusLabel').style.color = RBLX_COLORS[t]??'#555';
     document.getElementById('rblxStatusIcon').innerHTML = rblxStatusSVG(t);
     document.getElementById('rblxPip').innerHTML = rblxPipSVG(t);
   }
 
-  async function fetchRoblox() {
-    try {
-      /* Display name */
+  async function fetchRobloxPresence() {
+    const target = 'https://presence.roblox.com/v1/presence/users';
+    const body = JSON.stringify({ userIds: [RBLX_ID] });
+    const proxies = [
+      url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    ];
+    for (const makeUrl of proxies) {
       try {
-        const userRes = await fetch(`https://users.roblox.com/v1/users/${RBLX_ID}`);
-        const userData = await userRes.json();
-        if (userData?.displayName) {
-          document.getElementById('rblxName').textContent = userData.displayName;
-        }
-      } catch(_) {}
-
-      /* Presence — use corsproxy.io to bypass CORS restriction */
-      const presRes = await fetch(
-        'https://corsproxy.io/?' + encodeURIComponent('https://presence.roblox.com/v1/presence/users'),
-        {
+        const res = await fetch(makeUrl(target), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userIds: [RBLX_ID] })
-        }
-      );
-      const presData = await presRes.json();
-      const pres = presData?.userPresences?.[0];
-      if (!pres) return;
-
-      const pt = pres.userPresenceType ?? 0;
-      applyRblxStatus(pt);
-      renderRblxActivity(pt, pres);
-
-    } catch(e) {
-      console.warn('Roblox error', e);
-      applyRblxStatus(0);
-      renderRblxActivity(0, null);
+          headers: { 'Content-Type': 'application/json', 'x-requested-with': 'XMLHttpRequest' },
+          body
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const pres = data?.userPresences?.[0];
+        if (pres) return pres;
+      } catch(e) { console.warn('Proxy failed:', e); }
     }
+    return null;
   }
 
-  async function renderRblxActivity(presenceType, pres) {
+  async function fetchRoblox() {
+    try {
+      const userRes = await fetch(`https://users.roblox.com/v1/users/${RBLX_ID}`);
+      const userData = await userRes.json();
+      if (userData?.displayName) document.getElementById('rblxName').textContent = userData.displayName;
+    } catch(_) {}
+
+    const pres = await fetchRobloxPresence();
+    const pt = pres?.userPresenceType ?? 0;
+    applyRblxStatus(pt);
+
     const area = document.getElementById('rblxActivityArea');
     area.innerHTML = '';
 
-    /* In-game */
-    if (presenceType === 2 && pres) {
+    if (pt === 2 && pres) {
       const gameName = pres.lastLocation || 'a Roblox game';
       const rootPlaceId = pres.rootPlaceId || pres.placeId;
       const gameId = pres.gameId;
-
-      /* Try to get game thumbnail */
-      let gameThumbnail = '';
+      let thumb = '';
       if (rootPlaceId) {
         try {
-          const gtRes = await fetch(
-            `https://thumbnails.roblox.com/v1/games/icons?universeIds=${rootPlaceId}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`
-          );
-          const gtData = await gtRes.json();
-          const url = gtData?.data?.[0]?.imageUrl;
-          if (url) gameThumbnail = url;
+          const r = await fetch(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${rootPlaceId}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`);
+          const d = await r.json();
+          thumb = d?.data?.[0]?.imageUrl || '';
         } catch(_) {}
-
-        /* fallback: try place thumbnail */
-        if (!gameThumbnail) {
-          try {
-            const ptRes = await fetch(
-              `https://thumbnails.roblox.com/v1/places/gameicons?placeIds=${rootPlaceId}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`
-            );
-            const ptData = await ptRes.json();
-            const url = ptData?.data?.[0]?.imageUrl;
-            if (url) gameThumbnail = url;
-          } catch(_) {}
-        }
       }
-
-      /* Join URL — deep link opens Roblox client */
       const joinUrl = rootPlaceId
-        ? (gameId
-            ? `https://www.roblox.com/games/start?placeId=${rootPlaceId}&gameInstanceId=${gameId}`
-            : `https://www.roblox.com/games/${rootPlaceId}/`)
+        ? (gameId ? `https://www.roblox.com/games/start?placeId=${rootPlaceId}&gameInstanceId=${gameId}` : `https://www.roblox.com/games/${rootPlaceId}/`)
         : 'https://www.roblox.com';
-
       const el = document.createElement('div');
-      el.className = 'rblx-activity';
-      el.style.marginTop = '18px';
+      el.className = 'activity-block';
+      el.style.marginTop = '20px';
       el.innerHTML = `
-        ${gameThumbnail
-          ? `<img class="rblx-thumb" src="${esc(gameThumbnail)}" alt="${esc(gameName)}" />`
-          : `<div class="rblx-thumb" style="display:flex;align-items:center;justify-content:center;font-size:22px;">🎮</div>`}
+        ${thumb?`<img class="rblx-thumb" src="${esc(thumb)}" alt="${esc(gameName)}"/>`:`<div class="act-thumb-placeholder">🎮</div>`}
         <div style="flex:1;min-width:0;">
           <div class="act-tag">playing</div>
           <div class="rblx-game-name">${esc(gameName)}</div>
           <div class="rblx-game-detail">Roblox</div>
           <a class="join-btn" href="${esc(joinUrl)}" target="_blank" rel="noopener">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <polygon points="2,1 9,5 2,9" fill="currentColor"/>
-            </svg>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polygon points="2,1 9,5 2,9" fill="currentColor"/></svg>
             Join Game
           </a>
         </div>`;
       area.appendChild(el);
-
-    } else if (presenceType === 3) {
-      /* In Studio */
-      const el = document.createElement('div');
-      el.className = 'no-activity';
-      el.style.marginTop = '18px';
-      el.textContent = 'in roblox studio';
-      area.appendChild(el);
-
-    } else if (presenceType === 1) {
-      /* Online on site */
-      const el = document.createElement('div');
-      el.className = 'no-activity';
-      el.style.marginTop = '18px';
-      el.textContent = 'browsing roblox';
-      area.appendChild(el);
-
+    } else if (pt===3) {
+      area.innerHTML=`<div class="no-activity" style="margin-top:20px;">in roblox studio</div>`;
+    } else if (pt===1) {
+      area.innerHTML=`<div class="no-activity" style="margin-top:20px;">browsing roblox</div>`;
     } else {
-      /* Offline */
-      area.innerHTML = `<div class="no-activity" style="margin-top:18px;">not playing anything</div>`;
+      area.innerHTML=`<div class="no-activity" style="margin-top:20px;">not playing anything</div>`;
     }
   }
 
-  /* Init */
   fetchLanyard();
   setInterval(fetchLanyard, 10_000);
-
   fetchRoblox();
   setInterval(fetchRoblox, 30_000);
 </script>
