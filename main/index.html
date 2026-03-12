@@ -37,7 +37,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 48px 24px;
+      padding: 32px 24px;
       overflow-x: hidden;
     }
 
@@ -58,12 +58,13 @@
 
     /* ── LAYOUT ── */
     .container {
-      width: 100%; max-width: 1100px;
+      width: 100%; max-width: 1500px;
       position: relative; z-index: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
+      gap: 20px;
       align-items: start;
+      padding: 0 20px;
     }
 
     /* ── STACKS ── */
@@ -84,7 +85,7 @@
       background: var(--surface);
       border: 1px solid var(--edge);
       border-radius: var(--r-card);
-      padding: 38px 36px;
+      padding: 48px 52px;
       backdrop-filter: blur(40px);
       -webkit-backdrop-filter: blur(40px);
       position: relative;
@@ -145,7 +146,7 @@
       border: 1px solid var(--edge);
       border-top: 1px solid var(--edge-lo);
       border-radius: 0 0 var(--r-card) var(--r-card);
-      padding: 12px 20px;
+      padding: 18px 28px;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -158,15 +159,15 @@
       border-color: rgba(255,255,255,0.1);
     }
     .annex-label {
-      font-size: 8px;
+      font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--dim);
+      color: var(--white);
       margin-bottom: 6px;
     }
     .annex-logo {
-      height: 20px; width: auto;
+      height: 30px; width: auto;
       object-fit: contain;
       filter: brightness(0.75) contrast(1.1);
       transition: filter 0.2s;
@@ -204,13 +205,13 @@
     .profile-row {
       display: flex;
       align-items: flex-start;
-      gap: 16px;
+      gap: 24px;
     }
 
     .avatar-wrap { position: relative; flex-shrink: 0; }
     .avatar {
-      width: 100px; height: 100px;
-      border-radius: 20px;
+      width: 130px; height: 130px;
+      border-radius: 24px;
       object-fit: cover;
       display: block;
       box-shadow:
@@ -252,13 +253,13 @@
     .display-name {
       font-family: 'Patrick Hand', cursive;
       font-weight: 400;
-      font-size: 24px;
+      font-size: 34px;
       line-height: 1.1;
       color: var(--white);
       letter-spacing: -0.02em;
     }
     .username {
-      font-size: 10px;
+      font-size: 13px;
       font-weight: 400;
       color: var(--muted);
       margin-top: 5px;
@@ -311,10 +312,10 @@
       border: 1px solid var(--edge-lo);
       border-top-color: rgba(255,255,255,0.065);
       border-radius: var(--r-inner);
-      padding: 12px 14px;
+      padding: 18px 20px;
       display: flex;
       align-items: center;
-      gap: 13px;
+      gap: 18px;
       margin-top: 8px;
       position: relative;
       overflow: hidden;
@@ -330,15 +331,15 @@
     .act-block + .act-block { margin-top: 6px; }
 
     .act-thumb {
-      width: 48px; height: 48px;
-      border-radius: 9px;
+      width: 68px; height: 68px;
+      border-radius: 12px;
       object-fit: cover;
       flex-shrink: 0;
       box-shadow: 0 3px 10px rgba(0,0,0,0.45);
     }
     .act-thumb-ph {
-      width: 48px; height: 48px;
-      border-radius: 9px;
+      width: 68px; height: 68px;
+      border-radius: 12px;
       background: rgba(255,255,255,0.04);
       border: 1px solid var(--edge);
       display: flex; align-items: center; justify-content: center;
@@ -357,7 +358,7 @@
     .act-name {
       font-family: 'Patrick Hand', cursive;
       font-weight: 400;
-      font-size: 15px;
+      font-size: 20px;
       color: var(--white);
       line-height: 1.2;
       white-space: nowrap;
@@ -365,7 +366,7 @@
       text-overflow: ellipsis;
     }
     .act-detail {
-      font-size: 10.5px;
+      font-size: 13px;
       color: var(--sub);
       margin-top: 1px;
       white-space: nowrap;
@@ -384,8 +385,8 @@
     /* ── SPOTIFY ── */
     .sp-thumb-wrap { position: relative; flex-shrink: 0; }
     .sp-thumb {
-      width: 48px; height: 48px;
-      border-radius: 9px;
+      width: 68px; height: 68px;
+      border-radius: 12px;
       object-fit: cover;
       display: block;
       box-shadow: 0 3px 10px rgba(0,0,0,0.45);
@@ -481,7 +482,7 @@
     .stat-pill-value {
       font-family: 'Patrick Hand', cursive;
       font-weight: 400;
-      font-size: 18px;
+      font-size: 26px;
       color: var(--white);
       letter-spacing: -0.02em;
       line-height: 1;
@@ -598,29 +599,16 @@
           </div>
         </div>
 
-        <div class="stat-row">
-          <div class="stat-pill">
-            <div class="stat-pill-label">Friends</div>
-            <div class="stat-pill-value" id="rblxFriends">—</div>
-          </div>
-          <div class="stat-pill">
-            <div class="stat-pill-label">Followers</div>
-            <div class="stat-pill-value" id="rblxFollowers">—</div>
-          </div>
-          <div class="stat-pill">
-            <div class="stat-pill-label">Joined</div>
-            <div class="stat-pill-value" id="rblxJoined">—</div>
-          </div>
-        </div>
+
 
         <div id="rblxActivityArea"></div>
       </div>
       <a class="annex" href="https://www.roblox.com/games/286090429/Arsenal" target="_blank" rel="noopener">
         <div style="flex:1;">
-          <div class="annex-label">favorite game</div>
+          <div class="annex-label">my favorite game is</div>
           <img class="annex-logo"
             src="https://cdn2.steamgriddb.com/logo_thumb/ad3a14270fa2d83b1fec766852384865.png"
-            alt="Arsenal" />
+            alt="Arsenal" style="margin-top: 10px;" />
         </div>
         <div class="annex-arrow">→</div>
       </a>
