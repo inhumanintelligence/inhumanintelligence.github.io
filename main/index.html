@@ -6,292 +6,943 @@
   <title>Profile</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;800&family=Patrick+Hand&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Patrick+Hand&family=Syne:wght@600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --bg: #0a0a0a; --card: rgba(255,255,255,0.042);
-      --border: rgba(255,255,255,0.08); --border-top: rgba(255,255,255,0.14);
-      --text: #f0f0f0; --muted: #888; --dim: #444; --white: #ffffff;
+      --bg:        #000000;
+      --surface:   rgba(255,255,255,0.032);
+      --surface-2: rgba(255,255,255,0.018);
+      --surface-3: rgba(255,255,255,0.011);
+      --edge:      rgba(255,255,255,0.075);
+      --edge-hi:   rgba(255,255,255,0.16);
+      --edge-lo:   rgba(255,255,255,0.035);
+      --text:      #e8e8f0;
+      --sub:       rgba(232,232,240,0.5);
+      --muted:     rgba(232,232,240,0.28);
+      --dim:       rgba(232,232,240,0.14);
+      --white:     #f0f0f8;
+      --accent:    rgba(180,160,255,0.18);
+      --accent-hi: rgba(200,180,255,0.35);
+      --r-card:    20px;
+      --r-inner:   12px;
     }
+
     html, body {
-      min-height: 100vh; background: var(--bg);
-      font-family: 'Barlow', sans-serif; color: var(--text);
-      display: flex; align-items: center; justify-content: center;
-      padding: 40px 32px; overflow-x: hidden;
+      min-height: 100vh;
+      background: var(--bg);
+      font-family: 'DM Mono', monospace;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      overflow-x: hidden;
     }
-    body::before {
-      content: ''; position: fixed; width: 900px; height: 900px;
-      background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 65%);
-      top: -300px; left: -200px; border-radius: 50%;
-      filter: blur(100px); pointer-events: none; z-index: 0;
+
+    /* ── DNA CANVAS ── */
+    #dnaCanvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
     }
-    body::after {
-      content: ''; position: fixed; width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 65%);
-      bottom: -200px; right: -100px; border-radius: 50%;
-      filter: blur(80px); pointer-events: none; z-index: 0;
-    }
+
     .grain {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.03;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
       background-size: 180px 180px;
     }
+
+    /* ── LAYOUT ── */
     .container {
-      width: 100%; max-width: 960px; position: relative; z-index: 1;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
+      width: 100%; max-width: 1100px;
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
     }
 
-    /* ── CARD WRAPPER — card + fav game stacked with no gap ── */
-    .card-stack { display: flex; flex-direction: column; opacity: 0; }
-    .card-stack:nth-child(1) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.04s forwards; }
-    .card-stack:nth-child(2) { animation: up 0.45s cubic-bezier(0.22,1,0.36,1) 0.14s forwards; }
+    /* ── STACKS ── */
+    .stack {
+      display: flex; flex-direction: column;
+      opacity: 0;
+    }
+    .stack:nth-child(1) { animation: rise 0.55s cubic-bezier(0.16,1,0.3,1) 0.05s forwards; }
+    .stack:nth-child(2) { animation: rise 0.55s cubic-bezier(0.16,1,0.3,1) 0.2s forwards; }
 
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── CARD ── */
     .card {
-      background: var(--card); border: 1px solid var(--border);
-      border-top-color: var(--border-top); border-radius: 28px; padding: 32px;
-      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
-      box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 32px 64px rgba(0,0,0,0.55), 0 4px 20px rgba(0,0,0,0.4);
-    }
-    .card-stack:has(.fav-game) .card {
-      border-radius: 28px 28px 0 0;
-      box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 -4px 0 rgba(0,0,0,0.2);
-      border-bottom: none;
+      background: var(--surface);
+      border: 1px solid var(--edge);
+      border-radius: var(--r-card);
+      padding: 38px 36px;
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.5),
+        0 1px 0 rgba(255,255,255,0.07) inset,
+        0 -1px 0 rgba(0,0,0,0.4) inset,
+        0 20px 60px rgba(0,0,0,0.7),
+        0 4px 16px rgba(0,0,0,0.4);
     }
 
-    /* ── FAVORITE GAME ATTACHED BOX ── */
-    .fav-game {
-      background: rgba(255,255,255,0.026);
-      border: 1px solid var(--border);
-      border-top: 1px solid rgba(255,255,255,0.05);
-      border-radius: 0 0 28px 28px;
-      padding: 14px 24px;
-      display: flex; align-items: center; gap: 14px;
-      box-shadow: 0 24px 48px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.3);
+    .card:hover {
+      border-color: rgba(255,255,255,0.11);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.5),
+        0 1px 0 rgba(255,255,255,0.09) inset,
+        0 -1px 0 rgba(0,0,0,0.4) inset,
+        0 24px 70px rgba(0,0,0,0.75),
+        0 6px 20px rgba(0,0,0,0.45),
+        0 0 40px rgba(100,80,200,0.04);
+    }
+
+    /* gradient border shimmer at top */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,0.18) 30%,
+        rgba(200,180,255,0.25) 50%,
+        rgba(255,255,255,0.18) 70%,
+        transparent 100%
+      );
+    }
+
+    /* inner vignette glow */
+    .card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(140,100,255,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .stack:has(.annex) .card {
+      border-radius: var(--r-card) var(--r-card) 0 0;
+      border-bottom: 1px solid var(--edge-lo);
+    }
+
+    /* ── ANNEX ── */
+    .annex {
+      background: var(--surface-3);
+      border: 1px solid var(--edge);
+      border-top: 1px solid var(--edge-lo);
+      border-radius: 0 0 var(--r-card) var(--r-card);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       text-decoration: none;
-      transition: background 0.2s;
+      transition: background 0.2s, border-color 0.2s;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
     }
-    .fav-game:hover { background: rgba(255,255,255,0.045); }
-    .fav-label {
-      font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--white);
+    .annex:hover {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.1);
     }
-    .fav-logo { height: 26px; width: auto; object-fit: contain; flex-shrink: 0; filter: brightness(0.9); }
-    .fav-arrow {
-      margin-left: auto; flex-shrink: 0;
-      color: var(--dim); font-size: 14px; line-height: 1;
+    .annex-label {
+      font-size: 8px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 6px;
+    }
+    .annex-logo {
+      height: 20px; width: auto;
+      object-fit: contain;
+      filter: brightness(0.75) contrast(1.1);
+      transition: filter 0.2s;
+    }
+    .annex:hover .annex-logo { filter: brightness(0.9) contrast(1.1); }
+    .annex-arrow {
+      margin-left: auto;
+      color: var(--dim);
+      font-size: 12px;
       transition: color 0.2s, transform 0.2s;
+      flex-shrink: 0;
     }
-    .fav-game:hover .fav-arrow { color: var(--muted); transform: translateX(2px); }
+    .annex:hover .annex-arrow { color: var(--muted); transform: translateX(3px); }
 
-    /* ── PLATFORM LABEL ── */
-    .platform-label {
-      font-size: 9px; font-weight: 800; letter-spacing: 0.18em;
-      text-transform: uppercase; color: var(--dim);
-      margin-bottom: 20px; display: flex; align-items: center; gap: 7px;
+    /* ── EYEBROW ── */
+    .eyebrow {
+      font-size: 8px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .platform-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+    .eyebrow::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--edge), transparent);
+    }
 
     /* ── PROFILE ROW ── */
-    .profile-row { display: flex; align-items: flex-start; gap: 20px; }
+    .profile-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
     .avatar-wrap { position: relative; flex-shrink: 0; }
-    .avatar-img { width: 96px; height: 96px; border-radius: 20px; object-fit: cover; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-    .profile-info { padding-top: 4px; }
-    .dc-name { font-family: 'Patrick Hand', cursive; font-weight: 400; font-size: 22px; line-height: 1.1; color: var(--white); }
-    .handle { font-size: 11px; color: var(--muted); margin-top: 5px; font-weight: 600; }
+    .avatar {
+      width: 100px; height: 100px;
+      border-radius: 20px;
+      object-fit: cover;
+      display: block;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        0 8px 28px rgba(0,0,0,0.6),
+        0 2px 8px rgba(0,0,0,0.4);
+    }
 
-    /* ── ACTIVITY BLOCKS ── */
-    .activity-block {
-      margin-top: 20px; background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07); border-top-color: rgba(255,255,255,0.11);
-      border-radius: 18px; padding: 16px 18px;
-      display: flex; align-items: center; gap: 16px;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.3);
+    /* Status dot */
+    .status-dot {
+      position: absolute;
+      bottom: -3px; right: -3px;
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+      background: #43b581;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
     }
-    .act-thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
-    .act-thumb-placeholder {
-      width: 60px; height: 60px; border-radius: 12px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);
-      display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;
+    .status-dot::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      background: inherit;
+      opacity: 0.4;
+      animation: pulse-status 2.5s ease-out infinite;
     }
-    .act-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin-bottom: 5px; }
-    .act-name { font-family: 'Patrick Hand', cursive; font-size: 16px; color: var(--white); line-height: 1.2; }
-    .act-detail { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 600; }
-    .act-state  { font-size: 11px; color: var(--dim); margin-top: 2px; }
+    .status-dot.idle { background: #faa61a; }
+    .status-dot.dnd  { background: #f04747; }
+    .status-dot.offline { background: #747f8d; }
+
+    @keyframes pulse-status {
+      0%   { transform: scale(1); opacity: 0.4; }
+      70%  { transform: scale(2.2); opacity: 0; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    .profile-meta { padding-top: 2px; flex: 1; min-width: 0; }
+    .display-name {
+      font-family: 'Patrick Hand', cursive;
+      font-weight: 400;
+      font-size: 24px;
+      line-height: 1.1;
+      color: var(--white);
+      letter-spacing: -0.02em;
+    }
+    .username {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 5px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Custom status */
+    .custom-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 9px;
+      background: var(--surface-2);
+      border: 1px solid var(--edge-lo);
+      border-radius: 8px;
+      padding: 4px 9px;
+      font-size: 10px;
+      color: var(--sub);
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .custom-status-emoji { font-size: 11px; flex-shrink: 0; }
+    .custom-status-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--edge), transparent);
+      margin: 18px 0;
+    }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-size: 8px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 8px;
+      margin-top: 4px;
+    }
+
+    /* ── ACTIVITY BLOCK ── */
+    .act-block {
+      background: var(--surface-2);
+      border: 1px solid var(--edge-lo);
+      border-top-color: rgba(255,255,255,0.065);
+      border-radius: var(--r-inner);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-top: 8px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, background 0.2s;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 4px 16px rgba(0,0,0,0.3);
+    }
+    .act-block:hover {
+      background: rgba(255,255,255,0.024);
+      border-color: rgba(255,255,255,0.08);
+    }
+    .act-block + .act-block { margin-top: 6px; }
+
+    .act-thumb {
+      width: 48px; height: 48px;
+      border-radius: 9px;
+      object-fit: cover;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.45);
+    }
+    .act-thumb-ph {
+      width: 48px; height: 48px;
+      border-radius: 9px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--edge);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+
+    .act-body { flex: 1; min-width: 0; }
+    .act-tag {
+      font-size: 8px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 3px;
+    }
+    .act-name {
+      font-family: 'Patrick Hand', cursive;
+      font-weight: 400;
+      font-size: 15px;
+      color: var(--white);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .act-detail {
+      font-size: 10.5px;
+      color: var(--sub);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .act-state {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── SPOTIFY ── */
     .sp-thumb-wrap { position: relative; flex-shrink: 0; }
-    .sp-thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; }
-    .sp-icon { position: absolute; bottom: -4px; right: -4px; background: #d4d4d4; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
-    .sp-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin-bottom: 5px; }
-    .sp-song { font-family: 'Patrick Hand', cursive; font-size: 16px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sp-artist { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 600; }
-    .sp-bar { margin-top: 10px; background: rgba(255,255,255,0.07); border-radius: 4px; height: 2px; }
-    .sp-fill { height: 100%; background: rgba(255,255,255,0.55); border-radius: 4px; transition: width 1s linear; width: 0%; }
-    .no-activity {
-      margin-top: 20px; padding: 16px 18px;
-      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 18px; font-size: 11px; font-weight: 800;
-      color: var(--dim); text-align: center; letter-spacing: 0.07em; text-transform: uppercase;
+    .sp-thumb {
+      width: 48px; height: 48px;
+      border-radius: 9px;
+      object-fit: cover;
+      display: block;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.45);
     }
-    .rblx-thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,0.05); }
-    .rblx-game-name { font-family: 'Patrick Hand', cursive; font-size: 16px; color: var(--white); line-height: 1.2; }
-    .rblx-game-detail { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 600; }
-    .join-btn {
-      display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
-      background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
-      border-top-color: rgba(255,255,255,0.2); border-radius: 8px; padding: 7px 13px;
-      font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--white); text-decoration: none;
-      transition: background 0.2s, border-color 0.2s;
+    .sp-badge {
+      position: absolute;
+      bottom: -3px; right: -3px;
+      width: 15px; height: 15px;
+      background: #1ed760;
+      border: 1.5px solid var(--bg);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
-    .join-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.26); }
 
-    @keyframes up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    @media (max-width: 640px) {
-      html, body { padding: 20px 16px; }
+    /* Animated eq bars */
+    .sp-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 1.5px;
+      height: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .sp-eq span {
+      width: 2px;
+      border-radius: 1px;
+      background: rgba(255,255,255,0.3);
+      animation: eq-bar 1.2s ease-in-out infinite alternate;
+    }
+    .sp-eq span:nth-child(1) { height: 5px; animation-delay: 0s; }
+    .sp-eq span:nth-child(2) { height: 9px; animation-delay: 0.2s; }
+    .sp-eq span:nth-child(3) { height: 6px; animation-delay: 0.4s; }
+    .sp-eq span:nth-child(4) { height: 10px; animation-delay: 0.1s; }
+
+    @keyframes eq-bar {
+      from { transform: scaleY(0.3); }
+      to   { transform: scaleY(1); }
+    }
+
+    .sp-bar-wrap {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .sp-bar-track {
+      flex: 1;
+      height: 2px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .sp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.6));
+      border-radius: 2px;
+      transition: width 1s linear;
+      width: 0%;
+    }
+    .sp-time {
+      font-size: 9px;
+      color: var(--dim);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── STAT ROW ── */
+    .stat-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 18px;
+    }
+    .stat-pill {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1px solid var(--edge-lo);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
+      transition: border-color 0.2s;
+    }
+    .stat-pill:hover { border-color: var(--edge); }
+    .stat-pill-label {
+      font-size: 7.5px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    .stat-pill-value {
+      font-family: 'Patrick Hand', cursive;
+      font-weight: 400;
+      font-size: 18px;
+      color: var(--white);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    /* ── ROBLOX JOIN BTN ── */
+    .rblx-join {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 9px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-top-color: rgba(255,255,255,0.16);
+      border-radius: 8px;
+      padding: 5px 11px;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+    .rblx-join:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      margin-top: 10px;
+      padding: 16px;
+      border: 1px dashed rgba(255,255,255,0.06);
+      border-radius: var(--r-inner);
+      text-align: center;
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--dim);
+      font-style: italic;
+      font-family: 'Instrument Serif', serif;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 580px) {
+      html, body { padding: 20px 12px; }
       .container { grid-template-columns: 1fr; }
-      .card, .fav-game { padding-left: 22px; padding-right: 22px; }
-      .card { padding-top: 22px; padding-bottom: 22px; }
-      .dc-name { font-size: 20px; }
+      .card { padding: 20px 18px; }
+    }
+
+    /* ── LOADING SKELETON ── */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.08) 50%,
+        rgba(255,255,255,0.04) 75%
+      );
+      background-size: 800px 100%;
+      animation: shimmer 1.6s infinite;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-<div class="grain"></div>
-<div class="container">
+  <canvas id="dnaCanvas"></canvas>
+  <div class="grain"></div>
 
-  <!-- ── DISCORD STACK ── -->
-  <div class="card-stack">
-    <div class="card">
-      <div class="platform-label">Discord</div>
-      <div class="profile-row">
-        <div class="avatar-wrap">
-          <img class="avatar-img" id="dcAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="avatar" />
+  <div class="container">
+
+    <!-- ── DISCORD ── -->
+    <div class="stack">
+      <div class="card">
+        <div class="eyebrow">Discord</div>
+        <div class="profile-row">
+          <div class="avatar-wrap">
+            <img class="avatar" id="dcAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="avatar" />
+            <div class="status-dot" id="statusDot"></div>
+          </div>
+          <div class="profile-meta">
+            <div class="display-name" id="dcName">—</div>
+            <div class="username" id="dcHandle">@...</div>
+            <div class="custom-status" id="dcCustomStatus" style="display:none">
+              <span class="custom-status-emoji" id="dcStatusEmoji"></span>
+              <span class="custom-status-text" id="dcStatusText"></span>
+            </div>
+          </div>
         </div>
-        <div class="profile-info">
-          <div class="dc-name" id="dcName">—</div>
-          <div class="handle" id="dcHandle">@...</div>
-        </div>
+
+        <div class="divider"></div>
+        <div id="activityArea"></div>
       </div>
-      <div id="activityArea"></div>
     </div>
+
+    <!-- ── ROBLOX ── -->
+    <div class="stack">
+      <div class="card">
+        <div class="eyebrow">Roblox</div>
+        <div class="profile-row">
+          <div class="avatar-wrap">
+            <img class="avatar" id="rblxAvatar"
+              src="https://tr.rbxcdn.com/30DAY-Avatar-3AD5A7A8A6E4FC0300E7918E00A1CF71-Png/720/720/Avatar/Webp/noFilter"
+              alt="roblox avatar" />
+          </div>
+          <div class="profile-meta">
+            <div class="display-name" id="rblxName">inhumanintelligence</div>
+            <div class="username">@inhumanintelligence</div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-pill">
+            <div class="stat-pill-label">Friends</div>
+            <div class="stat-pill-value" id="rblxFriends">—</div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-pill-label">Followers</div>
+            <div class="stat-pill-value" id="rblxFollowers">—</div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-pill-label">Joined</div>
+            <div class="stat-pill-value" id="rblxJoined">—</div>
+          </div>
+        </div>
+
+        <div id="rblxActivityArea"></div>
+      </div>
+      <a class="annex" href="https://www.roblox.com/games/286090429/Arsenal" target="_blank" rel="noopener">
+        <div style="flex:1;">
+          <div class="annex-label">favorite game</div>
+          <img class="annex-logo"
+            src="https://cdn2.steamgriddb.com/logo_thumb/ad3a14270fa2d83b1fec766852384865.png"
+            alt="Arsenal" />
+        </div>
+        <div class="annex-arrow">→</div>
+      </a>
+    </div>
+
   </div>
 
-  <!-- ── ROBLOX STACK ── -->
-  <div class="card-stack">
-    <div class="card">
-      <div class="platform-label">Roblox</div>
-      <div class="profile-row">
-        <div class="avatar-wrap">
-          <img class="avatar-img" id="rblxAvatar"
-            src="https://tr.rbxcdn.com/30DAY-Avatar-3AD5A7A8A6E4FC0300E7918E00A1CF71-Png/720/720/Avatar/Webp/noFilter"
-            alt="roblox avatar" />
-        </div>
-        <div class="profile-info">
-          <div class="dc-name" id="rblxName">inhumanintelligence</div>
-          <div class="handle">@inhumanintelligence</div>
-        </div>
-      </div>
-      <div id="rblxActivityArea"></div>
-    </div>
-    <a class="fav-game" href="https://www.roblox.com/games/286090429/Arsenal" target="_blank" rel="noopener">
-      <div style="flex:1;">
-        <div class="fav-label">my favorite game is</div>
-        <img class="fav-logo" src="https://cdn2.steamgriddb.com/logo_thumb/ad3a14270fa2d83b1fec766852384865.png" alt="favorite game logo" style="margin-top:10px;" />
-      </div>
-      <div class="fav-arrow">→</div>
-    </a>
-  </div>
+  <script>
+    const DISCORD_ID = "1439946318083784866";
+    const RBLX_ID    = 8499836409;
 
-</div>
-<script>
-  const DISCORD_ID = "1439946318083784866";
-  const STATUS_LABELS = { online:"online", idle:"idle", dnd:"do not disturb", offline:"offline" };
-
-  function esc(s) { if(!s)return''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function assetUrl(appId, key) {
-    if (!key) return null;
-    if (key.startsWith('mp:external/')) return 'https://media.discordapp.net/external/' + key.replace('mp:external/','');
-    return `https://cdn.discordapp.com/app-assets/${appId}/${key}.png`;
-  }
-
-  let spInterval = null;
-  function renderActivity(activities, spotify) {
-    const area = document.getElementById('activityArea');
-    area.innerHTML = '';
-    if (spInterval) { clearInterval(spInterval); spInterval = null; }
-    const acts = (activities||[]).filter(a=>a.type!==2);
-    if (spotify) {
-      const elapsed = Date.now() - spotify.timestamps.start;
-      const total   = spotify.timestamps.end - spotify.timestamps.start;
-      const pct = Math.min((elapsed/total)*100,100).toFixed(1);
-      const el = document.createElement('div');
-      el.className = 'activity-block';
-      el.innerHTML = `
-        <div class="sp-thumb-wrap">
-          <img class="sp-thumb" src="${esc(spotify.album_art_url)}" alt="album"/>
-          <div class="sp-icon"><svg width="9" height="9" viewBox="0 0 24 24" fill="#111"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg></div>
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div class="sp-tag">listening</div>
-          <div class="sp-song">${esc(spotify.song)}</div>
-          <div class="sp-artist">${esc(spotify.artist)}</div>
-          <div class="sp-bar"><div class="sp-fill" id="spFill" style="width:${pct}%"></div></div>
-        </div>`;
-      area.appendChild(el);
-      spInterval = setInterval(()=>{
-        const fill=document.getElementById('spFill');
-        if(!fill){clearInterval(spInterval);return;}
-        fill.style.width=Math.min(((Date.now()-spotify.timestamps.start)/total)*100,100).toFixed(1)+'%';
-      },1000);
+    function esc(s) {
+      if (!s) return '';
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
-    if (acts[0]) {
-      const a = acts[0];
-      const thumb = assetUrl(a.application_id, a.assets?.large_image);
-      const el = document.createElement('div');
-      el.className = 'activity-block';
-      el.innerHTML = `
-        ${thumb?`<img class="act-thumb" src="${thumb}" alt="${esc(a.name)}" onerror="this.style.display='none'"/>`:`<div class="act-thumb-placeholder"></div>`}
-        <div style="flex:1;min-width:0;">
-          <div class="act-tag">playing</div>
-          <div class="act-name">${esc(a.name)}</div>
-          ${a.details?`<div class="act-detail">${esc(a.details)}</div>`:''}
-          ${a.state?`<div class="act-state">${esc(a.state)}</div>`:''}
-        </div>`;
-      area.appendChild(el);
+    function assetUrl(appId, key) {
+      if (!key) return null;
+      if (key.startsWith('mp:external/'))
+        return 'https://media.discordapp.net/external/' + key.replace('mp:external/','');
+      return `https://cdn.discordapp.com/app-assets/${appId}/${key}.png`;
     }
-    if (!acts[0]&&!spotify) area.innerHTML=`<div class="no-activity">not doing anything</div>`;
-  }
+    function fmtMs(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const ss = s % 60;
+      return `${m}:${ss.toString().padStart(2,'0')}`;
+    }
+    function fmtNum(n) {
+      if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+      return n;
+    }
 
-  async function fetchLanyard() {
-    try {
-      const r = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_ID}`);
-      const d = (await r.json()).data;
-      if (!d) return;
-      const u = d.discord_user;
-      if (u.avatar) {
-        const ext = u.avatar.startsWith('a_')?'gif':'png';
-        document.getElementById('dcAvatar').src=`https://cdn.discordapp.com/avatars/${DISCORD_ID}/${u.avatar}.${ext}?size=256`;
+    let spInterval = null;
+
+    function renderActivity(activities, spotify) {
+      const area = document.getElementById('activityArea');
+      area.innerHTML = '';
+      if (spInterval) { clearInterval(spInterval); spInterval = null; }
+
+      const acts = (activities || []).filter(a => a.type !== 2);
+
+      if (spotify) {
+        const elapsed = Date.now() - spotify.timestamps.start;
+        const total   = spotify.timestamps.end - spotify.timestamps.start;
+        const pct = Math.min((elapsed / total) * 100, 100).toFixed(1);
+
+        const el = document.createElement('div');
+        el.className = 'act-block';
+        el.innerHTML = `
+          <div class="sp-thumb-wrap">
+            <img class="sp-thumb" src="${esc(spotify.album_art_url)}" alt="album" />
+            <div class="sp-badge">
+              <svg width="7" height="7" viewBox="0 0 24 24" fill="#000">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="act-body">
+            <div class="act-tag">listening</div>
+            <div class="act-name">${esc(spotify.song)}</div>
+            <div class="act-detail">${esc(spotify.artist)}</div>
+            <div class="sp-bar-wrap">
+              <span class="sp-time" id="spElapsed">${fmtMs(elapsed)}</span>
+              <div class="sp-bar-track"><div class="sp-fill" id="spFill" style="width:${pct}%"></div></div>
+              <span class="sp-time">${fmtMs(total)}</span>
+            </div>
+          </div>
+          <div class="sp-eq">
+            <span></span><span></span><span></span><span></span>
+          </div>`;
+        area.appendChild(el);
+
+        spInterval = setInterval(() => {
+          const fill = document.getElementById('spFill');
+          const elapsed_el = document.getElementById('spElapsed');
+          if (!fill) { clearInterval(spInterval); return; }
+          const now = Date.now() - spotify.timestamps.start;
+          fill.style.width = Math.min((now / total) * 100, 100).toFixed(1) + '%';
+          if (elapsed_el) elapsed_el.textContent = fmtMs(now);
+        }, 1000);
       }
-      document.getElementById('dcName').textContent   = u.global_name||u.username||'—';
-      document.getElementById('dcHandle').textContent = '@'+(u.username||'...');
-      renderActivity(d.activities, d.spotify);
-    } catch(e){ console.warn('Lanyard error',e); }
-  }
 
-  /* ── ROBLOX ── */
-  const RBLX_ID = 8499836409;
+      if (acts[0]) {
+        const a = acts[0];
+        const thumb = assetUrl(a.application_id, a.assets?.large_image);
+        const el = document.createElement('div');
+        el.className = 'act-block';
+        el.innerHTML = `
+          ${thumb
+            ? `<img class="act-thumb" src="${thumb}" alt="${esc(a.name)}" onerror="this.outerHTML='<div class=act-thumb-ph></div>'" />`
+            : `<div class="act-thumb-ph"></div>`}
+          <div class="act-body">
+            <div class="act-tag">playing</div>
+            <div class="act-name">${esc(a.name)}</div>
+            ${a.details ? `<div class="act-detail">${esc(a.details)}</div>` : ''}
+            ${a.state   ? `<div class="act-state">${esc(a.state)}</div>` : ''}
+          </div>`;
+        area.appendChild(el);
+      }
 
-  async function fetchRoblox() {
-    try {
-      const userRes = await fetch(`https://users.roblox.com/v1/users/${RBLX_ID}`);
-      const userData = await userRes.json();
-      if (userData?.displayName) document.getElementById('rblxName').textContent = userData.displayName;
-    } catch(_) {}
-  }
+      if (!acts[0] && !spotify) {
+        area.innerHTML = `<div class="empty">not doing anything right now</div>`;
+      }
+    }
 
-  fetchLanyard();
-  setInterval(fetchLanyard, 10_000);
-  fetchRoblox();
-</script>
+    function setStatus(status) {
+      const dot = document.getElementById('statusDot');
+      dot.className = 'status-dot';
+      if (status === 'idle')    dot.classList.add('idle');
+      if (status === 'dnd')     dot.classList.add('dnd');
+      if (status === 'offline') dot.classList.add('offline');
+    }
+
+    async function fetchLanyard() {
+      try {
+        const r = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_ID}`);
+        const d = (await r.json()).data;
+        if (!d) return;
+
+        const u = d.discord_user;
+
+        if (u.avatar) {
+          const ext = u.avatar.startsWith('a_') ? 'gif' : 'png';
+          document.getElementById('dcAvatar').src =
+            `https://cdn.discordapp.com/avatars/${DISCORD_ID}/${u.avatar}.${ext}?size=256`;
+        }
+
+        document.getElementById('dcName').textContent   = u.global_name || u.username || '—';
+        document.getElementById('dcHandle').textContent = '@' + (u.username || '...');
+
+        setStatus(d.discord_status || 'offline');
+
+        // Custom status
+        const customAct = (d.activities || []).find(a => a.type === 4);
+        if (customAct && (customAct.state || customAct.emoji)) {
+          const wrap = document.getElementById('dcCustomStatus');
+          const emoji = document.getElementById('dcStatusEmoji');
+          const text  = document.getElementById('dcStatusText');
+          wrap.style.display = 'inline-flex';
+          emoji.textContent = customAct.emoji?.name || '';
+          text.textContent  = customAct.state || '';
+        }
+
+        renderActivity(d.activities, d.spotify);
+      } catch (e) { console.warn('Lanyard error', e); }
+    }
+
+    /* ── ROBLOX ── */
+    async function fetchRoblox() {
+      try {
+        const [userRes, friendRes, followRes] = await Promise.all([
+          fetch(`https://users.roblox.com/v1/users/${RBLX_ID}`),
+          fetch(`https://friends.roblox.com/v1/users/${RBLX_ID}/friends/count`),
+          fetch(`https://friends.roblox.com/v1/users/${RBLX_ID}/followers/count`)
+        ]);
+
+        const user   = await userRes.json();
+        const friend = await friendRes.json();
+        const follow = await followRes.json();
+
+        if (user?.displayName) document.getElementById('rblxName').textContent = user.displayName;
+        if (user?.created) {
+          const yr = new Date(user.created).getFullYear();
+          document.getElementById('rblxJoined').textContent = "'" + String(yr).slice(2);
+        }
+        if (friend?.count !== undefined)
+          document.getElementById('rblxFriends').textContent = fmtNum(friend.count);
+        if (follow?.count !== undefined)
+          document.getElementById('rblxFollowers').textContent = fmtNum(follow.count);
+
+      } catch (_) {}
+    }
+
+    fetchLanyard();
+    setInterval(fetchLanyard, 10_000);
+    fetchRoblox();
+
+    /* ── CONSTELLATIONS ── */
+    (function() {
+      const canvas = document.getElementById('dnaCanvas');
+      const ctx    = canvas.getContext('2d');
+
+      function resize() {
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', () => { resize(); init(); });
+
+      // Define constellation shapes as relative coords (0..1 range, will be scaled)
+      const SHAPES = [
+        // Big Dipper
+        [[0,0.6],[0.18,0.3],[0.35,0.1],[0.55,0],[0.72,0.08],[0.72,0.28],[0.55,0.36],[0.35,0.1]],
+        // Orion-ish
+        [[0,0],[0.4,0.1],[0.8,0],[0.6,0.5],[0.7,1],[0.4,0.85],[0.1,1],[0.2,0.5]],
+        // Cassiopeia W
+        [[0,0.5],[0.2,0],[0.4,0.5],[0.6,0],[0.8,0.5]],
+        // Cross
+        [[0.4,0],[0.4,0.4],[0,0.4],[0.4,0.4],[0.8,0.4],[0.4,0.4],[0.4,0.9]],
+        // Triangle
+        [[0.5,0],[1,1],[0,1],[0.5,0]],
+        // Arrow
+        [[0,0.5],[0.6,0.5],[0.4,0],[0.6,0.5],[0.4,1]],
+        // Diamond
+        [[0.5,0],[1,0.5],[0.5,1],[0,0.5],[0.5,0]],
+        // Leo-ish sickle
+        [[0,0],[0.25,0.3],[0.15,0.6],[0.3,0.9],[0.6,1],[0.9,0.8],[0.8,0.5],[0.5,0.4],[0.25,0.3]],
+        // Scorpius tail
+        [[0,0],[0.15,0.2],[0.1,0.45],[0.2,0.65],[0.35,0.7],[0.5,0.6],[0.55,0.75],[0.45,0.9],[0.55,1]],
+        // Small dipper
+        [[0,0],[0.12,0.1],[0.25,0.06],[0.38,0],[0.38,0.2],[0.25,0.26],[0.12,0.1]],
+        // Zig-zag
+        [[0,0],[0.2,0.5],[0.4,0],[0.6,0.5],[0.8,0],[1,0.5]],
+        // Lyra
+        [[0.5,0],[0.2,0.4],[0,0.8],[0.5,1],[1,0.8],[0.8,0.4],[0.5,0],[0.2,0.4],[0.8,0.4]],
+      ];
+
+      const NUM = 18; // number of constellations on screen
+      let constellations = [];
+
+      function randBetween(a, b) { return a + Math.random() * (b - a); }
+
+      function makeConstellation() {
+        const shape   = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+        const scale   = randBetween(60, 180);
+        const x       = randBetween(-60, canvas.width  + 60);
+        const y       = randBetween(-60, canvas.height + 60);
+        const alpha   = randBetween(0.06, 0.22);
+        const speed   = randBetween(0.06, 0.22);        // drift speed px/frame
+        const angle   = randBetween(0, Math.PI * 2);    // drift direction
+        const twinkle = randBetween(0, Math.PI * 2);    // twinkle phase offset
+        const rot     = randBetween(0, Math.PI * 2);
+        return { shape, scale, x, y, alpha, speed, angle, twinkle, rot };
+      }
+
+      function init() {
+        constellations = [];
+        for (let i = 0; i < NUM; i++) constellations.push(makeConstellation());
+      }
+      init();
+
+      let t = 0;
+
+      function drawConstellation(c) {
+        const pts = c.shape;
+        const cos = Math.cos(c.rot), sin = Math.sin(c.rot);
+
+        function pt(p) {
+          const lx = (p[0] - 0.5) * c.scale;
+          const ly = (p[1] - 0.5) * c.scale;
+          return [
+            c.x + lx * cos - ly * sin,
+            c.y + lx * sin + ly * cos,
+          ];
+        }
+
+        // twinkle opacity
+        const flicker = 0.75 + 0.25 * Math.sin(t * 0.8 + c.twinkle);
+        const a = c.alpha * flicker;
+
+        // draw lines
+        ctx.beginPath();
+        const p0 = pt(pts[0]);
+        ctx.moveTo(p0[0], p0[1]);
+        for (let i = 1; i < pts.length; i++) {
+          const p = pt(pts[i]);
+          ctx.lineTo(p[0], p[1]);
+        }
+        ctx.strokeStyle = `rgba(220,230,200,${a * 0.55})`;
+        ctx.lineWidth   = 0.8;
+        ctx.stroke();
+
+        // draw stars (unique pts only)
+        const seen = new Set();
+        for (const raw of pts) {
+          const key = raw[0] + ',' + raw[1];
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const [px, py] = pt(raw);
+          const starFlicker = 0.6 + 0.4 * Math.sin(t * 1.2 + c.twinkle + raw[0] * 9);
+          const r = 1.2 + 1.4 * starFlicker;
+
+          // glow
+          const grd = ctx.createRadialGradient(px, py, 0, px, py, r * 4);
+          grd.addColorStop(0, `rgba(255,255,240,${a * 0.9 * starFlicker})`);
+          grd.addColorStop(1, `rgba(255,255,240,0)`);
+          ctx.beginPath();
+          ctx.arc(px, py, r * 4, 0, Math.PI * 2);
+          ctx.fillStyle = grd;
+          ctx.fill();
+
+          // core dot
+          ctx.beginPath();
+          ctx.arc(px, py, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,250,${a * 1.2 * starFlicker})`;
+          ctx.fill();
+        }
+      }
+
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        t += 0.016;
+
+        for (const c of constellations) {
+          // drift slowly
+          c.x += Math.cos(c.angle) * c.speed;
+          c.y += Math.sin(c.angle) * c.speed;
+
+          // wrap around edges with margin
+          const M = 220;
+          if (c.x >  canvas.width  + M) c.x = -M;
+          if (c.x < -M)                  c.x =  canvas.width  + M;
+          if (c.y >  canvas.height + M) c.y = -M;
+          if (c.y < -M)                  c.y =  canvas.height + M;
+
+          drawConstellation(c);
+        }
+
+        requestAnimationFrame(loop);
+      }
+      loop();
+    })();
+  </script>
 </body>
 </html>
