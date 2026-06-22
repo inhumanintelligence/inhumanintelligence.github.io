@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Roblox Follower Viewer</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#1e1e1e;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+}
+
+.container{
+    background:#2b2b2b;
+    padding:30px;
+    border-radius:15px;
+    width:350px;
+    text-align:center;
+    box-shadow:0 0 20px rgba(0,0,0,.4);
+}
+
+input{
+    width:80%;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    margin-bottom:10px;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    background:#00a2ff;
+    color:white;
+    font-size:16px;
+}
+
+#result{
+    margin-top:20px;
+}
+
+img{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    margin-bottom:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Roblox Followers</h2>
+
+    <input id="username" placeholder="Enter Roblox Username">
+    <br>
+    <button onclick="lookup()">Search</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+
+const proxy = "https://corsproxy.io/?";
+
+async function lookup(){
+
+    const username = document.getElementById("username").value.trim();
+
+    if(!username) return;
+
+    const result = document.getElementById("result");
+    result.innerHTML = "Loading...";
+
+    try{
+
+        // Username -> User ID
+        const userRes = await fetch(
+            proxy + encodeURIComponent("https://users.roblox.com/v1/usernames/users"),
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify({
+                    usernames:[username],
+                    excludeBannedUsers:false
+                })
+            }
+        );
+
+        const userData = await userRes.json();
+
+        if(!userData.data.length){
+            result.innerHTML="User not found.";
+            return;
+        }
+
+        const user = userData.data[0];
+
+        // Followers
+        const followersRes = await fetch(
+            proxy + encodeURIComponent(`https://friends.roblox.com/v1/users/${user.id}/followers/count`)
+        );
+
+        const followers = await followersRes.json();
+
+        // Thumbnail
+        const thumbRes = await fetch(
+            proxy + encodeURIComponent(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=420x420&format=Png&isCircular=false`)
+        );
+
+        const thumb = await thumbRes.json();
+
+        result.innerHTML = `
+            <img src="${thumb.data[0].imageUrl}">
+            <h2>${user.name}</h2>
+            <h3>${followers.count.toLocaleString()} Followers</h3>
+        `;
+
+    }catch(err){
+        console.error(err);
+        result.innerHTML="Something went wrong.";
+    }
+
+}
+
+</script>
+
+</body>
+</html>
